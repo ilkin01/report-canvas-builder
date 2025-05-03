@@ -63,7 +63,10 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
 
   const handleDeleteElement = () => {
     if (element && element.id) {
+      console.log("Deleting element with ID:", element.id);
       deleteElement(element.id);
+    } else {
+      console.error("Cannot delete element - missing ID");
     }
   };
 
@@ -298,6 +301,19 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                     className="flex-1"
                   />
                 </div>
+              </div>
+
+              <div className="mt-4 border-t pt-2">
+                <Label>Cell Status Colors</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="bg-green-100 p-2 rounded text-sm">Positive</div>
+                  <div className="bg-red-100 p-2 rounded text-sm">Negative</div>
+                  <div className="bg-yellow-100 p-2 rounded text-sm">Warning</div>
+                  <div className="bg-blue-100 p-2 rounded text-sm">Active</div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Use Ctrl+Click on cells in the table to cycle through status options
+                </p>
               </div>
 
               <div className="mt-4">

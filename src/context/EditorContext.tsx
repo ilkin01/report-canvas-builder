@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer } from "react";
 import { CanvasState, ElementData, ReportDocument, Template } from "@/types/editor";
 import { v4 as uuidv4 } from "uuid";
@@ -112,9 +111,24 @@ const editorReducer = (
       };
     }
     case "DELETE_ELEMENT": {
+      console.log("Reducer: DELETE_ELEMENT action received for element ID:", action.payload.id);
+      
+      // Check if the element exists before trying to delete it
+      const elementExists = state.canvasState.elements.some(
+        elem => elem.id === action.payload.id
+      );
+      
+      if (!elementExists) {
+        console.error("Element not found for deletion:", action.payload.id);
+        return state;
+      }
+      
       const updatedElements = state.canvasState.elements.filter(
         elem => elem.id !== action.payload.id
       );
+      
+      console.log("Elements before deletion:", state.canvasState.elements.length);
+      console.log("Elements after deletion:", updatedElements.length);
 
       const newCanvasState = {
         ...state.canvasState,
@@ -173,7 +187,7 @@ const editorReducer = (
       if (!template) {
         return state;
       }
-
+      
       const newCanvasState = {
         elements: [...template.elements],
         selectedElementIds: [],
@@ -379,7 +393,22 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const deleteElement = (id: string) => {
+    console.log("Deleting element:", id);
+    if (!id) {
+      console.error("Attempted to delete element with no ID");
+      toast.error("Cannot delete element: No element ID provided");
+      return;
+    }
+    
+    // Check if there's an active report
+    if (!state.activeReportId) {
+      console.error("Cannot delete element: No active report");
+      toast.error("Cannot delete element: No active report");
+      return;
+    }
+    
     dispatch({ type: "DELETE_ELEMENT", payload: { id } });
+    toast.success("Element deleted successfully");
   };
 
   const selectElement = (id: string) => {

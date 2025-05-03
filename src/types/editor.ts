@@ -67,6 +67,7 @@ export type TableData = {
   headerBgColor?: string;
   highlightColor?: string;
   rowHighlights?: boolean[];
+  cellStatus?: Array<Array<'normal' | 'positive' | 'negative' | 'warning' | 'active'>>;
   referenceRanges?: string[];
   units?: string[];
 };
