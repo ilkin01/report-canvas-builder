@@ -63,6 +63,12 @@ export type SignatureData = {
 export type TableData = {
   headers: string[];
   rows: Array<Array<string | number>>;
+  title?: string;
+  headerBgColor?: string;
+  highlightColor?: string;
+  rowHighlights?: boolean[];
+  referenceRanges?: string[];
+  units?: string[];
 };
 
 export interface CanvasState {

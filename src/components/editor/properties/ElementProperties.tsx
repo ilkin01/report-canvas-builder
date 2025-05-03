@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
 import { ChartProperties } from "./ChartProperties";
+import { useEffect } from "react";
 
 interface ElementPropertiesProps {
   element: ElementData;
@@ -15,6 +16,13 @@ interface ElementPropertiesProps {
 
 export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element }) => {
   const { updateElement, deleteElement } = useEditor();
+
+  // Confirm the element exists on mount to prevent errors
+  useEffect(() => {
+    if (!element || !element.id) {
+      console.error("Element is undefined or missing ID in ElementProperties");
+    }
+  }, [element]);
 
   const handleChange = (
     field: string,
@@ -50,6 +58,12 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
       updateElement(element.id, {
         [field]: numValue,
       });
+    }
+  };
+
+  const handleDeleteElement = () => {
+    if (element && element.id) {
+      deleteElement(element.id);
     }
   };
 
@@ -237,10 +251,61 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
         return (
           <div className="space-y-4">
             <div>
-              <Label>Table Data</Label>
-              <p className="text-sm text-gray-500 mt-1">
-                Use the canvas to edit table data
-              </p>
+              <Label>Table Settings</Label>
+              <div className="mt-2">
+                <Label htmlFor="tableTitle">Table Title</Label>
+                <Input
+                  id="tableTitle"
+                  value={element.content.title || ""}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              
+              <div className="mt-2">
+                <Label htmlFor="headerBgColor">Header Background Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="headerBgColor"
+                    type="color"
+                    value={element.content.headerBgColor || "#f3f4f6"}
+                    onChange={(e) => handleChange("headerBgColor", e.target.value)}
+                    className="w-12 h-10 p-1"
+                  />
+                  <Input
+                    type="text"
+                    value={element.content.headerBgColor || "#f3f4f6"}
+                    onChange={(e) => handleChange("headerBgColor", e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-2">
+                <Label htmlFor="highlightColor">Highlight Row Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="highlightColor"
+                    type="color"
+                    value={element.content.highlightColor || "#fef9c3"}
+                    onChange={(e) => handleChange("highlightColor", e.target.value)}
+                    className="w-12 h-10 p-1"
+                  />
+                  <Input
+                    type="text"
+                    value={element.content.highlightColor || "#fef9c3"}
+                    onChange={(e) => handleChange("highlightColor", e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-sm text-gray-500">
+                  Click on rows in the table to highlight them. 
+                  Add rows and columns using buttons below the table.
+                </p>
+              </div>
             </div>
           </div>
         );
@@ -257,7 +322,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => deleteElement(element.id)}
+          onClick={handleDeleteElement}
           className="text-destructive hover:text-destructive hover:bg-destructive/10"
         >
           <Trash className="h-4 w-4" />

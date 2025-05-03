@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { ElementType } from "@/types/editor";
@@ -84,11 +85,16 @@ export const AppSidebar = () => {
         break;
       case "table":
         content = {
-          headers: ["Header 1", "Header 2", "Header 3"],
+          title: "Laboratory Results",
+          headerBgColor: "#f3f4f6",
+          highlightColor: "#fef9c3",
+          headers: ["Test Name", "Result", "Units", "Reference Range"],
           rows: [
-            ["Cell 1", "Cell 2", "Cell 3"],
-            ["Cell 4", "Cell 5", "Cell 6"],
+            ["Hemoglobin", "12.5", "g/dL", "12.0-16.0"],
+            ["Glucose", "95", "mg/dL", "74-106"],
+            ["Cholesterol", "185", "mg/dL", "<200"]
           ],
+          rowHighlights: [false, false, false],
         };
         break;
       default:
@@ -97,6 +103,91 @@ export const AppSidebar = () => {
 
     addElement({
       ...baseElement,
+      content,
+    });
+  };
+  
+  const handleAddLabTemplate = (template: string) => {
+    if (!activeReport) {
+      toast.error("Please open or create a report first");
+      return;
+    }
+    
+    let content;
+    let width = 500;
+    let height = 300;
+    
+    switch (template) {
+      case "cbc":
+        content = {
+          title: "Complete Blood Count (CBC)",
+          headerBgColor: "#e5f3ff",
+          highlightColor: "#fef9c3",
+          headers: ["Test Name", "Result", "Units", "Reference Range"],
+          rows: [
+            ["WBC", "7.5", "10³/μL", "4.0-10.0"],
+            ["RBC", "4.8", "10⁶/μL", "4.0-5.5"],
+            ["Hemoglobin", "14.2", "g/dL", "12.0-16.0"],
+            ["Hematocrit", "42", "%", "36-46"],
+            ["MCV", "88", "fL", "80-100"],
+            ["MCH", "29.5", "pg", "27-33"],
+            ["MCHC", "33.5", "g/dL", "32-36"],
+            ["Platelets", "250", "10³/μL", "150-450"],
+          ],
+          rowHighlights: [false, false, false, false, false, false, false, false],
+        };
+        break;
+      case "biochemistry":
+        content = {
+          title: "Biochemistry Panel",
+          headerBgColor: "#e5f3ff",
+          highlightColor: "#fef9c3",
+          headers: ["Test Name", "Result", "Units", "Reference Range"],
+          rows: [
+            ["Glucose", "95", "mg/dL", "74-106"],
+            ["Urea", "32", "mg/dL", "17-43"],
+            ["Creatinine", "0.9", "mg/dL", "0.7-1.2"],
+            ["Total Protein", "7.2", "g/dL", "6.4-8.3"],
+            ["Albumin", "4.5", "g/dL", "3.5-5.2"],
+            ["AST", "25", "U/L", "0-35"],
+            ["ALT", "28", "U/L", "0-45"],
+            ["ALP", "75", "U/L", "30-120"],
+          ],
+          rowHighlights: [false, false, false, false, false, false, false, false],
+        };
+        break;
+      case "coagulation":
+        content = {
+          title: "Coagulation Profile",
+          headerBgColor: "#e5f3ff",
+          highlightColor: "#fef9c3",
+          headers: ["Test Name", "Result", "Units", "Reference Range"],
+          rows: [
+            ["Prothrombin Time", "12.5", "sec", "11-15"],
+            ["INR", "1.1", "", "0.8-1.2"],
+            ["aPTT", "30", "sec", "25-35"],
+            ["Fibrinogen", "320", "mg/dL", "200-400"],
+            ["D-dimer", "<0.5", "μg/mL", "<0.5"],
+          ],
+          rowHighlights: [false, false, false, false, false],
+        };
+        break;
+      default:
+        content = {
+          headers: ["Column 1", "Column 2", "Column 3"],
+          rows: [
+            ["Cell 1", "Cell 2", "Cell 3"],
+            ["Cell 4", "Cell 5", "Cell 6"],
+          ],
+        };
+    }
+    
+    addElement({
+      type: "table",
+      x: 100,
+      y: 100,
+      width,
+      height,
       content,
     });
   };
@@ -163,7 +254,34 @@ export const AppSidebar = () => {
         </Button>
       </div>
       
-      <div className="mt-auto border-t">
+      <div className="p-4 border-t border-b">
+        <h2 className="font-semibold text-lg mb-3">Lab Templates</h2>
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => handleAddLabTemplate("cbc")}
+          >
+            Complete Blood Count
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => handleAddLabTemplate("biochemistry")}
+          >
+            Biochemistry Panel
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => handleAddLabTemplate("coagulation")}
+          >
+            Coagulation Profile
+          </Button>
+        </div>
+      </div>
+      
+      <div className="mt-auto border-t flex-grow overflow-auto">
         {selectedElement && (
           <ElementProperties element={selectedElement} />
         )}

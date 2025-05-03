@@ -34,7 +34,7 @@ export const AppHeader = () => {
       }
       
       // Use html2canvas to capture the entire canvas with charts and tables
-      const canvas = await html2canvas(canvasElement, {
+      const canvas = await html2canvas(canvasElement as HTMLElement, {
         scale: 2, // Higher quality
         useCORS: true,
         allowTaint: true,
@@ -76,33 +76,38 @@ export const AppHeader = () => {
       return;
     }
     
-    // Create workbook
-    const wb = XLSX.utils.book_new();
-    
-    // Process elements to extract tabular data
-    const tables = activeReport.elements.filter(el => el.type === "table");
-    
-    if (tables.length === 0) {
-      toast.error("No table data to export");
-      return;
-    }
-    
-    tables.forEach((table, index) => {
-      if (table.content && table.content.headers && table.content.rows) {
-        // Create worksheet from data
-        const wsData = [
-          table.content.headers,
-          ...table.content.rows
-        ];
-        
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        XLSX.utils.book_append_sheet(wb, ws, `Table_${index + 1}`);
+    try {
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Process elements to extract tabular data
+      const tables = activeReport.elements.filter(el => el.type === "table");
+      
+      if (tables.length === 0) {
+        toast.error("No table data to export");
+        return;
       }
-    });
-    
-    // Write and save
-    XLSX.writeFile(wb, `${activeReport.name.replace(/\s+/g, '_')}.xlsx`);
-    toast.success("Excel file exported successfully");
+      
+      tables.forEach((table, index) => {
+        if (table.content && table.content.headers && table.content.rows) {
+          // Create worksheet from data
+          const wsData = [
+            table.content.headers,
+            ...table.content.rows
+          ];
+          
+          const ws = XLSX.utils.aoa_to_sheet(wsData);
+          XLSX.utils.book_append_sheet(wb, ws, `Table_${index + 1}`);
+        }
+      });
+      
+      // Write and save
+      XLSX.writeFile(wb, `${activeReport.name.replace(/\s+/g, '_')}.xlsx`);
+      toast.success("Excel file exported successfully");
+    } catch (error) {
+      console.error("Excel export error:", error);
+      toast.error("Failed to export Excel. Please try again.");
+    }
   };
 
   return (
