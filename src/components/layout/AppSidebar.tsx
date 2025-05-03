@@ -8,10 +8,12 @@ import {
   FileText, 
   BarChart3, 
   MessageSquare, 
-  PenTool 
+  PenTool,
+  ListPlus 
 } from "lucide-react";
 import { ElementProperties } from "../editor/properties/ElementProperties";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const AppSidebar = () => {
   const { addElement, canvasState, getActiveReport } = useEditor();
@@ -95,6 +97,11 @@ export const AppSidebar = () => {
             ["Cholesterol", "185", "mg/dL", "<200"]
           ],
           rowHighlights: [false, false, false],
+          cellStatus: [
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"]
+          ],
         };
         break;
       default:
@@ -135,6 +142,16 @@ export const AppSidebar = () => {
             ["Platelets", "250", "10³/μL", "150-450"],
           ],
           rowHighlights: [false, false, false, false, false, false, false, false],
+          cellStatus: [
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+          ],
         };
         break;
       case "biochemistry":
@@ -154,6 +171,16 @@ export const AppSidebar = () => {
             ["ALP", "75", "U/L", "30-120"],
           ],
           rowHighlights: [false, false, false, false, false, false, false, false],
+          cellStatus: [
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+          ],
         };
         break;
       case "coagulation":
@@ -170,6 +197,13 @@ export const AppSidebar = () => {
             ["D-dimer", "<0.5", "μg/mL", "<0.5"],
           ],
           rowHighlights: [false, false, false, false, false],
+          cellStatus: [
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+            ["normal", "normal", "normal", "normal"],
+          ],
         };
         break;
       default:
@@ -194,98 +228,110 @@ export const AppSidebar = () => {
 
   return (
     <div className="w-64 border-r bg-white h-[calc(100vh-4rem)] flex flex-col">
-      <div className="p-4 border-b">
-        <h2 className="font-semibold text-lg">Elements</h2>
-      </div>
-      
-      <div className="p-4 grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col justify-center"
-          onClick={() => handleAddElement("text")}
-        >
-          <FileText className="h-8 w-8 mb-2" />
-          <span>Text</span>
-        </Button>
+      <Tabs defaultValue="elements" className="flex flex-col h-full">
+        <TabsList className="grid grid-cols-2 w-full rounded-none border-b">
+          <TabsTrigger value="elements">Elements</TabsTrigger>
+          <TabsTrigger value="properties">Properties</TabsTrigger>
+        </TabsList>
         
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col justify-center"
-          onClick={() => handleAddElement("table")}
-        >
-          <Square className="h-8 w-8 mb-2" />
-          <span>Table</span>
-        </Button>
+        <TabsContent value="elements" className="flex-grow overflow-auto">
+          <div className="p-4 grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col justify-center"
+              onClick={() => handleAddElement("text")}
+            >
+              <FileText className="h-8 w-8 mb-2" />
+              <span>Text</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col justify-center"
+              onClick={() => handleAddElement("table")}
+            >
+              <Square className="h-8 w-8 mb-2" />
+              <span>Table</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col justify-center"
+              onClick={() => handleAddElement("chart")}
+            >
+              <BarChart3 className="h-8 w-8 mb-2" />
+              <span>Chart</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col justify-center"
+              onClick={() => handleAddElement("shape")}
+            >
+              <CircleIcon className="h-8 w-8 mb-2" />
+              <span>Shape</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col justify-center"
+              onClick={() => handleAddElement("comment")}
+            >
+              <MessageSquare className="h-8 w-8 mb-2" />
+              <span>Comment</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col justify-center"
+              onClick={() => handleAddElement("signature")}
+            >
+              <PenTool className="h-8 w-8 mb-2" />
+              <span>Signature</span>
+            </Button>
+          </div>
+          
+          <div className="p-4 border-t">
+            <h2 className="font-semibold text-lg mb-3 flex items-center">
+              <ListPlus className="h-5 w-5 mr-2" />
+              Lab Templates
+            </h2>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleAddLabTemplate("cbc")}
+              >
+                Complete Blood Count
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleAddLabTemplate("biochemistry")}
+              >
+                Biochemistry Panel
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleAddLabTemplate("coagulation")}
+              >
+                Coagulation Profile
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
         
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col justify-center"
-          onClick={() => handleAddElement("chart")}
-        >
-          <BarChart3 className="h-8 w-8 mb-2" />
-          <span>Chart</span>
-        </Button>
-        
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col justify-center"
-          onClick={() => handleAddElement("shape")}
-        >
-          <CircleIcon className="h-8 w-8 mb-2" />
-          <span>Shape</span>
-        </Button>
-        
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col justify-center"
-          onClick={() => handleAddElement("comment")}
-        >
-          <MessageSquare className="h-8 w-8 mb-2" />
-          <span>Comment</span>
-        </Button>
-        
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col justify-center"
-          onClick={() => handleAddElement("signature")}
-        >
-          <PenTool className="h-8 w-8 mb-2" />
-          <span>Signature</span>
-        </Button>
-      </div>
-      
-      <div className="p-4 border-t border-b">
-        <h2 className="font-semibold text-lg mb-3">Lab Templates</h2>
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => handleAddLabTemplate("cbc")}
-          >
-            Complete Blood Count
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => handleAddLabTemplate("biochemistry")}
-          >
-            Biochemistry Panel
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => handleAddLabTemplate("coagulation")}
-          >
-            Coagulation Profile
-          </Button>
-        </div>
-      </div>
-      
-      <div className="mt-auto border-t flex-grow overflow-auto">
-        {selectedElement && (
-          <ElementProperties element={selectedElement} />
-        )}
-      </div>
+        <TabsContent value="properties" className="flex-grow overflow-auto">
+          {selectedElement ? (
+            <ElementProperties element={selectedElement} />
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              Select an element to edit its properties
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

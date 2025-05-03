@@ -60,6 +60,8 @@ export type SignatureData = {
   signature?: string;
 };
 
+export type CellStatus = 'normal' | 'positive' | 'negative' | 'warning' | 'active';
+
 export type TableData = {
   headers: string[];
   rows: Array<Array<string | number>>;
@@ -67,7 +69,7 @@ export type TableData = {
   headerBgColor?: string;
   highlightColor?: string;
   rowHighlights?: boolean[];
-  cellStatus?: Array<Array<'normal' | 'positive' | 'negative' | 'warning' | 'active'>>;
+  cellStatus?: Array<Array<CellStatus>>;
   referenceRanges?: string[];
   units?: string[];
 };

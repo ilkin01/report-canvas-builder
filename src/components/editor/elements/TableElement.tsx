@@ -150,7 +150,8 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
     const newHighlights = [...rowHighlights, false];
     setRowHighlights(newHighlights);
 
-    const newCellStatus = [...cellStatus, Array(localHeaders.length).fill('normal')];
+    // Fixed this line to properly type the new cell status array
+    const newCellStatus = [...cellStatus, Array(localHeaders.length).fill('normal' as 'normal' | 'positive' | 'negative' | 'warning' | 'active')];
     setCellStatus(newCellStatus);
     
     updateElement(element.id, {
@@ -172,7 +173,8 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
     const newRows = localRows.map(row => [...row, ""]);
     setLocalRows(newRows);
 
-    const newCellStatus = cellStatus.map(row => [...row, 'normal']);
+    // Fixed this line to properly type the new cell status array
+    const newCellStatus = cellStatus.map(row => [...row, 'normal' as 'normal' | 'positive' | 'negative' | 'warning' | 'active']);
     setCellStatus(newCellStatus);
     
     updateElement(element.id, {
