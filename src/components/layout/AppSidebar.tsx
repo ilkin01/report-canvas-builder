@@ -1,10 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { ElementType } from "@/types/editor";
 import { 
   Square, 
-  CircleSquare, 
+  CircleIcon, 
   FileText, 
   BarChart3, 
   MessageSquare, 
@@ -133,7 +132,7 @@ export const AppSidebar = () => {
           className="h-24 flex flex-col justify-center"
           onClick={() => handleAddElement("shape")}
         >
-          <CircleSquare className="h-8 w-8 mb-2" />
+          <CircleIcon className="h-8 w-8 mb-2" />
           <span>Shape</span>
         </Button>
         
