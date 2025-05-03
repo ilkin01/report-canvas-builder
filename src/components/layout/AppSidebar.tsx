@@ -10,15 +10,23 @@ import {
   PenTool 
 } from "lucide-react";
 import { ElementProperties } from "../editor/properties/ElementProperties";
+import { toast } from "sonner";
 
 export const AppSidebar = () => {
-  const { addElement, canvasState } = useEditor();
+  const { addElement, canvasState, getActiveReport } = useEditor();
   
   const selectedElement = canvasState.selectedElementIds.length > 0
     ? canvasState.elements.find(el => el.id === canvasState.selectedElementIds[0])
     : null;
 
+  const activeReport = getActiveReport();
+
   const handleAddElement = (type: ElementType) => {
+    if (!activeReport) {
+      toast.error("Please open or create a report first");
+      return;
+    }
+
     const baseElement = {
       type,
       x: 100,

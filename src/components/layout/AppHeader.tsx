@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { TemplateGallery } from "../editor/TemplateGallery";
 import { ArrowDown, Layers, Redo, Square, Undo } from "lucide-react";
 import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,41 +17,56 @@ export const AppHeader = () => {
   const activeReport = getActiveReport();
 
   // Generate and download PDF
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (!activeReport) {
       toast.error("No active report to export");
       return;
     }
     
-    // Create PDF document
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4"
-    });
-    
-    // Add title
-    pdf.setFontSize(16);
-    pdf.setTextColor(14, 165, 233); // medical-blue color
-    pdf.text(activeReport.name, 105, 20, { align: "center" });
-    
-    // Add report elements (simplified for this example)
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 0);
-    
-    let yPosition = 40;
-    activeReport.elements.forEach((element) => {
-      // Handle text elements
-      if (element.type === "text" && element.content.text) {
-        pdf.text(element.content.text, 20, yPosition);
-        yPosition += 10;
+    try {
+      toast.info("Preparing PDF export...");
+      
+      // Get the canvas element
+      const canvasElement = document.querySelector('.canvas-container');
+      if (!canvasElement) {
+        toast.error("Could not find report canvas");
+        return;
       }
-      // In a full implementation, we would handle tables, charts, etc.
-    });
-    
-    // Save PDF
-    pdf.save(`${activeReport.name.replace(/\s+/g, '_')}.pdf`);
-    toast.success("PDF exported successfully");
+      
+      // Use html2canvas to capture the entire canvas with charts and tables
+      const canvas = await html2canvas(canvasElement, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+      });
+      
+      // Create PDF with correct dimensions
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+        unit: "mm",
+        format: "a4"
+      });
+      
+      // Calculate dimensions to fit the image properly in the PDF
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      
+      // Add the image to the PDF
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth * ratio, imgHeight * ratio);
+      
+      // Save PDF
+      pdf.save(`${activeReport.name.replace(/\s+/g, '_')}.pdf`);
+      toast.success("PDF exported successfully");
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast.error("Failed to export PDF. Please try again.");
+    }
   };
   
   // Generate and download Excel
