@@ -16,7 +16,7 @@ export const AppHeader = () => {
   
   const activeReport = getActiveReport();
 
-  // Generate and download PDF
+  // Generate and download PDF with all pages
   const handleExportPdf = async () => {
     if (!activeReport) {
       toast.error("No active report to export");
@@ -26,50 +26,72 @@ export const AppHeader = () => {
     try {
       toast.info("Preparing PDF export...");
       
-      // Get the canvas element
-      const canvasElement = document.querySelector('.canvas-container');
-      if (!canvasElement) {
-        toast.error("Could not find report canvas");
-        return;
-      }
-      
-      // Use html2canvas to capture the entire canvas with charts and tables
-      const canvas = await html2canvas(canvasElement as HTMLElement, {
-        scale: 2, // Higher quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-      });
-      
-      // Create PDF with correct dimensions
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
-        orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+        orientation: "portrait",
         unit: "mm",
         format: "a4"
       });
       
-      // Calculate dimensions to fit the image properly in the PDF
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      
-      // Add the image to the PDF
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth * ratio, imgHeight * ratio);
+      // Loop through all pages
+      for (let i = 0; i < canvasState.pages.length; i++) {
+        // If not the first page, add a new page to the PDF
+        if (i > 0) {
+          pdf.addPage();
+        }
+        
+        // Get the canvas container - we'll clone it for each page to avoid state changes
+        const canvasContainer = document.querySelector('.canvas-container');
+        if (!canvasContainer) {
+          toast.error("Could not find report canvas");
+          return;
+        }
+        
+        // Store current page index
+        const currentPageIndex = canvasState.currentPageIndex;
+        
+        // Temporarily switch to the page we want to export
+        // This is just to make sure the page's elements are rendered in the DOM
+        const { setCurrentPage } = useEditor();
+        setCurrentPage(i);
+        
+        // Give time for the React to re-render the page
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Capture the canvas for the current page
+        const canvas = await html2canvas(canvasContainer as HTMLElement, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+        });
+        
+        // Add the image to the PDF
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth * ratio, imgHeight * ratio);
+        
+        // Restore the original page index after capturing
+        if (i !== currentPageIndex) {
+          setCurrentPage(currentPageIndex);
+        }
+      }
       
       // Save PDF
       pdf.save(`${activeReport.name.replace(/\s+/g, '_')}.pdf`);
-      toast.success("PDF exported successfully");
+      toast.success("PDF exported successfully with all pages");
     } catch (error) {
       console.error("PDF export error:", error);
       toast.error("Failed to export PDF. Please try again.");
     }
   };
   
-  // Generate and download Excel
+  // Generate and download Excel with data from all pages
   const handleExportExcel = () => {
     if (!activeReport) {
       toast.error("No active report to export");
@@ -80,30 +102,41 @@ export const AppHeader = () => {
       // Create workbook
       const wb = XLSX.utils.book_new();
       
-      // Process elements to extract tabular data
-      const tables = activeReport.elements.filter(el => el.type === "table");
+      // Process all pages
+      let hasTableData = false;
       
-      if (tables.length === 0) {
+      for (let i = 0; i < canvasState.pages.length; i++) {
+        const currentPage = canvasState.pages[i];
+        // Process elements to extract tabular data
+        const tables = currentPage.elements.filter(el => el.type === "table");
+        
+        tables.forEach((table, tableIndex) => {
+          if (table.content && table.content.headers && table.content.rows) {
+            hasTableData = true;
+            // Create worksheet from data
+            const wsData = [
+              table.content.headers,
+              ...table.content.rows
+            ];
+            
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(
+              wb, 
+              ws, 
+              `Page_${i+1}_Table_${tableIndex+1}`
+            );
+          }
+        });
+      }
+      
+      if (!hasTableData) {
         toast.error("No table data to export");
         return;
       }
       
-      tables.forEach((table, index) => {
-        if (table.content && table.content.headers && table.content.rows) {
-          // Create worksheet from data
-          const wsData = [
-            table.content.headers,
-            ...table.content.rows
-          ];
-          
-          const ws = XLSX.utils.aoa_to_sheet(wsData);
-          XLSX.utils.book_append_sheet(wb, ws, `Table_${index + 1}`);
-        }
-      });
-      
       // Write and save
       XLSX.writeFile(wb, `${activeReport.name.replace(/\s+/g, '_')}.xlsx`);
-      toast.success("Excel file exported successfully");
+      toast.success("Excel file exported successfully with data from all pages");
     } catch (error) {
       console.error("Excel export error:", error);
       toast.error("Failed to export Excel. Please try again.");

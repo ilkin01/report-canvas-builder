@@ -61,7 +61,8 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
     }
   };
 
-  const handleDeleteElement = () => {
+  const handleDeleteElement = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Stop event propagation
     if (element && element.id) {
       console.log("Deleting element with ID:", element.id);
       deleteElement(element.id);
