@@ -1,7 +1,6 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useEditor } from "@/context/EditorContext";
-import { ElementData } from "@/types/editor";
 import { CanvasElement } from "./elements/CanvasElement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X } from "lucide-react";
@@ -16,14 +15,18 @@ export const EditorCanvas = () => {
     closeReport 
   } = useEditor();
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 1100 }); // A4 size at 96 DPI
+  const [canvasSize] = useState({ width: 800, height: 1100 }); // A4 size at 96 DPI
   
   const { pages, currentPageIndex } = canvasState;
   const currentPage = pages[currentPageIndex];
   
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (canvasRef.current && !canvasRef.current.contains(e.target as Node)) {
+      // Only clear selection if clicking directly on the canvas container, not on elements or properties panel
+      if (canvasRef.current && 
+          e.target instanceof Node && 
+          canvasRef.current.contains(e.target) && 
+          e.target === canvasRef.current) {
         clearSelection();
       }
     };

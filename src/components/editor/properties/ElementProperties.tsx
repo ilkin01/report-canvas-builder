@@ -62,6 +62,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
   };
 
   const handleDeleteElement = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation(); // Stop event propagation
     if (element && element.id) {
       console.log("Deleting element with ID:", element.id);
@@ -71,12 +72,16 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
     }
   };
 
+  const handleInputContainerClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event bubbling up to parent containers
+  };
+
   const renderPropertiesByType = () => {
     switch (element.type) {
       case "text":
         return (
           <>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="text">Text Content</Label>
               <Textarea
                 id="text"
@@ -84,9 +89,10 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                 value={element.content.text || ""}
                 onChange={(e) => handleChange("text", e.target.value)}
                 className="resize-none"
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2" onClick={handleInputContainerClick}>
               <div className="space-y-2">
                 <Label htmlFor="fontSize">Font Size</Label>
                 <Input
@@ -94,6 +100,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                   type="number"
                   value={element.content.fontSize || 16}
                   onChange={(e) => handleChange("fontSize", parseInt(e.target.value, 10))}
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
               <div className="space-y-2">
@@ -101,11 +108,12 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                 <Select
                   value={element.content.textAlign || "left"}
                   onValueChange={(value) => handleChange("textAlign", value)}
+                  onOpenChange={(open) => open && event?.stopPropagation()}
                 >
-                  <SelectTrigger id="textAlign">
+                  <SelectTrigger id="textAlign" onClick={(e) => e.stopPropagation()}>
                     <SelectValue placeholder="Alignment" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent onClick={(e) => e.stopPropagation()}>
                     <SelectItem value="left">Left</SelectItem>
                     <SelectItem value="center">Center</SelectItem>
                     <SelectItem value="right">Right</SelectItem>
@@ -113,7 +121,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="textColor">Text Color</Label>
               <div className="flex gap-2">
                 <Input
@@ -122,12 +130,14 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                   value={element.content.color || "#333333"}
                   onChange={(e) => handleChange("color", e.target.value)}
                   className="w-12 h-10 p-1"
+                  onClick={(e) => e.stopPropagation()}
                 />
                 <Input
                   type="text"
                   value={element.content.color || "#333333"}
                   onChange={(e) => handleChange("color", e.target.value)}
                   className="flex-1"
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -140,23 +150,24 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
       case "shape":
         return (
           <>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="shapeType">Shape Type</Label>
               <Select
                 value={element.content.type || "rectangle"}
                 onValueChange={(value) => handleChange("type", value)}
+                onOpenChange={(open) => open && event?.stopPropagation()}
               >
-                <SelectTrigger id="shapeType">
+                <SelectTrigger id="shapeType" onClick={(e) => e.stopPropagation()}>
                   <SelectValue placeholder="Shape Type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent onClick={(e) => e.stopPropagation()}>
                   <SelectItem value="rectangle">Rectangle</SelectItem>
                   <SelectItem value="circle">Circle</SelectItem>
                   <SelectItem value="line">Line</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="shapeColor">Fill Color</Label>
               <div className="flex gap-2">
                 <Input
@@ -165,25 +176,28 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                   value={element.content.color || "#E5F3FF"}
                   onChange={(e) => handleChange("color", e.target.value)}
                   className="w-12 h-10 p-1"
+                  onClick={(e) => e.stopPropagation()}
                 />
                 <Input
                   type="text"
                   value={element.content.color || "#E5F3FF"}
                   onChange={(e) => handleChange("color", e.target.value)}
                   className="flex-1"
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="borderWidth">Border Width</Label>
               <Input
                 id="borderWidth"
                 type="number"
                 value={element.content.borderWidth || 1}
                 onChange={(e) => handleChange("borderWidth", parseInt(e.target.value, 10))}
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="borderColor">Border Color</Label>
               <div className="flex gap-2">
                 <Input
@@ -192,12 +206,14 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                   value={element.content.borderColor || "#0EA5E9"}
                   onChange={(e) => handleChange("borderColor", e.target.value)}
                   className="w-12 h-10 p-1"
+                  onClick={(e) => e.stopPropagation()}
                 />
                 <Input
                   type="text"
                   value={element.content.borderColor || "#0EA5E9"}
                   onChange={(e) => handleChange("borderColor", e.target.value)}
                   className="flex-1"
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -207,7 +223,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
       case "comment":
         return (
           <>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="commentText">Comment</Label>
               <Textarea
                 id="commentText"
@@ -215,14 +231,16 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                 value={element.content.text || ""}
                 onChange={(e) => handleChange("text", e.target.value)}
                 className="resize-none"
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="author">Author</Label>
               <Input
                 id="author"
                 value={element.content.author || ""}
                 onChange={(e) => handleChange("author", e.target.value)}
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
           </>
@@ -231,21 +249,23 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
       case "signature":
         return (
           <>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="signatureName">Name</Label>
               <Input
                 id="signatureName"
                 value={element.content.name || ""}
                 onChange={(e) => handleChange("name", e.target.value)}
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2" onClick={handleInputContainerClick}>
               <Label htmlFor="signatureDate">Date</Label>
               <Input
                 id="signatureDate"
                 type="date"
                 value={element.content.date || ""}
                 onChange={(e) => handleChange("date", e.target.value)}
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
           </>
@@ -253,7 +273,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
         
       case "table":
         return (
-          <div className="space-y-4">
+          <div className="space-y-4" onClick={handleInputContainerClick}>
             <div>
               <Label>Table Settings</Label>
               <div className="mt-2">
@@ -263,6 +283,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                   value={element.content.title || ""}
                   onChange={(e) => handleChange("title", e.target.value)}
                   className="mt-1"
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
               
@@ -275,12 +296,14 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                     value={element.content.headerBgColor || "#f3f4f6"}
                     onChange={(e) => handleChange("headerBgColor", e.target.value)}
                     className="w-12 h-10 p-1"
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <Input
                     type="text"
                     value={element.content.headerBgColor || "#f3f4f6"}
                     onChange={(e) => handleChange("headerBgColor", e.target.value)}
                     className="flex-1"
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
               </div>
@@ -294,12 +317,14 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
                     value={element.content.highlightColor || "#fef9c3"}
                     onChange={(e) => handleChange("highlightColor", e.target.value)}
                     className="w-12 h-10 p-1"
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <Input
                     type="text"
                     value={element.content.highlightColor || "#fef9c3"}
                     onChange={(e) => handleChange("highlightColor", e.target.value)}
                     className="flex-1"
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
               </div>
@@ -333,7 +358,10 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div 
+      className="p-4 space-y-4" 
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="flex justify-between items-center">
         <h3 className="font-semibold">{element.type.charAt(0).toUpperCase() + element.type.slice(1)} Properties</h3>
         <Button
@@ -346,7 +374,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2" onClick={handleInputContainerClick}>
         <div className="space-y-2">
           <Label htmlFor="posX">X Position</Label>
           <Input
@@ -354,6 +382,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
             type="number"
             value={element.x}
             onChange={(e) => handlePositionChange("x", e.target.value)}
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
         <div className="space-y-2">
@@ -363,6 +392,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
             type="number"
             value={element.y}
             onChange={(e) => handlePositionChange("y", e.target.value)}
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
         <div className="space-y-2">
@@ -372,6 +402,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
             type="number"
             value={element.width}
             onChange={(e) => handlePositionChange("width", e.target.value)}
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
         <div className="space-y-2">
@@ -381,6 +412,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
             type="number"
             value={element.height}
             onChange={(e) => handlePositionChange("height", e.target.value)}
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
       </div>

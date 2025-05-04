@@ -15,15 +15,24 @@ import { ElementProperties } from "../editor/properties/ElementProperties";
 import { PageControls } from "../editor/PageControls";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useEffect, useState } from "react";
 
 export const AppSidebar = () => {
-  const { addElement, canvasState, getActiveReport } = useEditor();
+  const { addElement, canvasState, getActiveReport, selectElement } = useEditor();
+  const [activeTab, setActiveTab] = useState<string>("elements");
   
   const selectedElement = canvasState.selectedElementIds.length > 0
     ? canvasState.pages[canvasState.currentPageIndex].elements.find(el => el.id === canvasState.selectedElementIds[0])
     : null;
 
   const activeReport = getActiveReport();
+  
+  // Automatically switch to properties tab when an element is selected
+  useEffect(() => {
+    if (selectedElement && activeTab !== "properties") {
+      setActiveTab("properties");
+    }
+  }, [selectedElement]);
 
   const handleAddElement = (type: ElementType) => {
     if (!activeReport) {
@@ -230,7 +239,11 @@ export const AppSidebar = () => {
   return (
     <div className="w-64 border-r bg-white h-[calc(100vh-4rem)] flex flex-col">
       <PageControls />
-      <Tabs defaultValue="elements" className="flex flex-col h-full">
+      <Tabs 
+        value={activeTab} 
+        onValueChange={setActiveTab} 
+        className="flex flex-col h-full"
+      >
         <TabsList className="grid grid-cols-2 w-full rounded-none border-b">
           <TabsTrigger value="elements">Elements</TabsTrigger>
           <TabsTrigger value="properties">Properties</TabsTrigger>
@@ -324,9 +337,20 @@ export const AppSidebar = () => {
           </div>
         </TabsContent>
         
-        <TabsContent value="properties" className="flex-grow overflow-auto">
+        <TabsContent 
+          value="properties" 
+          className="flex-grow overflow-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           {selectedElement ? (
-            <ElementProperties element={selectedElement} />
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              <ElementProperties element={selectedElement} />
+            </div>
           ) : (
             <div className="p-4 text-center text-gray-500">
               Select an element to edit its properties
