@@ -100,6 +100,19 @@ export const CanvasElement: React.FC<CanvasElementProps> = ({ element }) => {
 
   const handleDragStart = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Don't start dragging when clicking on text content or form controls
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === 'INPUT' || 
+      target.tagName === 'TEXTAREA' || 
+      target.tagName === 'SELECT' ||
+      target.tagName === 'BUTTON' ||
+      target.contentEditable === 'true'
+    ) {
+      return;
+    }
+    
     e.preventDefault();
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
 import { ChartProperties } from "./ChartProperties";
 import { useEffect } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ElementPropertiesProps {
   element: ElementData;
@@ -85,10 +86,10 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
               <Label htmlFor="text">Text Content</Label>
               <Textarea
                 id="text"
-                rows={3}
+                rows={5}
                 value={element.content.text || ""}
                 onChange={(e) => handleChange("text", e.target.value)}
-                className="resize-none"
+                className="resize-none whitespace-pre-wrap"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -227,10 +228,10 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
               <Label htmlFor="commentText">Comment</Label>
               <Textarea
                 id="commentText"
-                rows={3}
+                rows={5}
                 value={element.content.text || ""}
                 onChange={(e) => handleChange("text", e.target.value)}
-                className="resize-none"
+                className="resize-none whitespace-pre-wrap"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -330,6 +331,13 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
               </div>
 
               <div className="mt-4 border-t pt-2">
+                <Label>Table Cell Editing</Label>
+                <p className="text-sm text-gray-600 mt-1">
+                  Double-click on any cell in the table to edit its content directly.
+                </p>
+              </div>
+
+              <div className="mt-4 border-t pt-2">
                 <Label>Cell Status Colors</Label>
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   <div className="bg-green-100 p-2 rounded text-sm">Positive</div>
@@ -358,66 +366,68 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
   };
 
   return (
-    <div 
-      className="p-4 space-y-4" 
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex justify-between items-center">
-        <h3 className="font-semibold">{element.type.charAt(0).toUpperCase() + element.type.slice(1)} Properties</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDeleteElement}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash className="h-4 w-4" />
-        </Button>
-      </div>
+    <ScrollArea className="h-[calc(100vh-13rem)]">
+      <div 
+        className="p-4 space-y-4" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center">
+          <h3 className="font-semibold">{element.type.charAt(0).toUpperCase() + element.type.slice(1)} Properties</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDeleteElement}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
 
-      <div className="grid grid-cols-2 gap-2" onClick={handleInputContainerClick}>
-        <div className="space-y-2">
-          <Label htmlFor="posX">X Position</Label>
-          <Input
-            id="posX"
-            type="number"
-            value={element.x}
-            onChange={(e) => handlePositionChange("x", e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
+        <div className="grid grid-cols-2 gap-2" onClick={handleInputContainerClick}>
+          <div className="space-y-2">
+            <Label htmlFor="posX">X Position</Label>
+            <Input
+              id="posX"
+              type="number"
+              value={element.x}
+              onChange={(e) => handlePositionChange("x", e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="posY">Y Position</Label>
+            <Input
+              id="posY"
+              type="number"
+              value={element.y}
+              onChange={(e) => handlePositionChange("y", e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="width">Width</Label>
+            <Input
+              id="width"
+              type="number"
+              value={element.width}
+              onChange={(e) => handlePositionChange("width", e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="height">Height</Label>
+            <Input
+              id="height"
+              type="number"
+              value={element.height}
+              onChange={(e) => handlePositionChange("height", e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="posY">Y Position</Label>
-          <Input
-            id="posY"
-            type="number"
-            value={element.y}
-            onChange={(e) => handlePositionChange("y", e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="width">Width</Label>
-          <Input
-            id="width"
-            type="number"
-            value={element.width}
-            onChange={(e) => handlePositionChange("width", e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="height">Height</Label>
-          <Input
-            id="height"
-            type="number"
-            value={element.height}
-            onChange={(e) => handlePositionChange("height", e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      </div>
 
-      {renderPropertiesByType()}
-    </div>
+        {renderPropertiesByType()}
+      </div>
+    </ScrollArea>
   );
 };
