@@ -1,13 +1,14 @@
+
 import React, { createContext, useContext, useReducer } from "react";
-import { CanvasState, ElementData, ReportDocument, Template } from "@/types/editor";
+import { CanvasState, ElementData, Page, ReportDocument, Template } from "@/types/editor";
 import { v4 as uuidv4 } from "uuid";
 import { getTemplateById, systemTemplates } from "@/lib/templates";
 import { toast } from "sonner";
 
 type EditorAction =
-  | { type: "ADD_ELEMENT"; payload: { element: ElementData } }
-  | { type: "UPDATE_ELEMENT"; payload: { id: string; updates: Partial<ElementData> } }
-  | { type: "DELETE_ELEMENT"; payload: { id: string } }
+  | { type: "ADD_ELEMENT"; payload: { element: ElementData; pageIndex?: number } }
+  | { type: "UPDATE_ELEMENT"; payload: { id: string; updates: Partial<ElementData>; pageIndex?: number } }
+  | { type: "DELETE_ELEMENT"; payload: { id: string; pageIndex?: number } }
   | { type: "SELECT_ELEMENT"; payload: { id: string } }
   | { type: "CLEAR_SELECTION" }
   | { type: "LOAD_TEMPLATE"; payload: { templateId: string } }
@@ -16,16 +17,20 @@ type EditorAction =
   | { type: "REDO" }
   | { type: "SET_ACTIVE_TAB"; payload: { tabId: string } }
   | { type: "CREATE_REPORT"; payload: { name: string; templateId: string } }
-  | { type: "CLOSE_REPORT"; payload: { id: string } };
+  | { type: "CLOSE_REPORT"; payload: { id: string } }
+  | { type: "ADD_PAGE"; payload: { name: string } }
+  | { type: "REMOVE_PAGE"; payload: { pageIndex: number } }
+  | { type: "SET_CURRENT_PAGE"; payload: { pageIndex: number } }
+  | { type: "RENAME_PAGE"; payload: { pageIndex: number; name: string } };
 
 interface EditorContextType {
   canvasState: CanvasState;
   openReports: ReportDocument[];
   activeReportId: string | null;
   dispatch: React.Dispatch<EditorAction>;
-  addElement: (element: Omit<ElementData, "id">) => void;
-  updateElement: (id: string, updates: Partial<ElementData>) => void;
-  deleteElement: (id: string) => void;
+  addElement: (element: Omit<ElementData, "id">, pageIndex?: number) => void;
+  updateElement: (id: string, updates: Partial<ElementData>, pageIndex?: number) => void;
+  deleteElement: (id: string, pageIndex?: number) => void;
   selectElement: (id: string) => void;
   clearSelection: () => void;
   loadTemplate: (templateId: string) => void;
@@ -36,10 +41,21 @@ interface EditorContextType {
   closeReport: (id: string) => void;
   setActiveReport: (id: string) => void;
   getActiveReport: () => ReportDocument | null;
+  addPage: (name: string) => void;
+  removePage: (pageIndex: number) => void;
+  setCurrentPage: (pageIndex: number) => void;
+  renamePage: (pageIndex: number, name: string) => void;
 }
 
 const initialCanvasState: CanvasState = {
-  elements: [],
+  pages: [
+    {
+      id: uuidv4(),
+      name: "Page 1",
+      elements: []
+    }
+  ],
+  currentPageIndex: 0,
   selectedElementIds: [],
   history: {
     past: [],
@@ -59,12 +75,20 @@ const editorReducer = (
 ) => {
   switch (action.type) {
     case "ADD_ELEMENT": {
-      const newElement = { ...action.payload.element };
+      const { element, pageIndex = state.canvasState.currentPageIndex } = action.payload;
+      const newElement = { ...element };
+      
+      const updatedPages = [...state.canvasState.pages];
+      updatedPages[pageIndex] = {
+        ...updatedPages[pageIndex],
+        elements: [...updatedPages[pageIndex].elements, newElement]
+      };
+
       const newCanvasState = {
         ...state.canvasState,
-        elements: [...state.canvasState.elements, newElement],
+        pages: updatedPages,
         history: {
-          past: [...state.canvasState.history.past, [...state.canvasState.elements]],
+          past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
           future: [],
         },
       };
@@ -72,7 +96,7 @@ const editorReducer = (
       // Also update the active report
       const updatedReports = state.openReports.map(report => 
         report.id === state.activeReportId 
-          ? { ...report, elements: newCanvasState.elements, updatedAt: new Date().toISOString() }
+          ? { ...report, pages: updatedPages, updatedAt: new Date().toISOString() }
           : report
       );
 
@@ -83,16 +107,21 @@ const editorReducer = (
       };
     }
     case "UPDATE_ELEMENT": {
-      const { id, updates } = action.payload;
-      const updatedElements = state.canvasState.elements.map(elem => 
-        elem.id === id ? { ...elem, ...updates } : elem
-      );
+      const { id, updates, pageIndex = state.canvasState.currentPageIndex } = action.payload;
+      
+      const updatedPages = [...state.canvasState.pages];
+      updatedPages[pageIndex] = {
+        ...updatedPages[pageIndex],
+        elements: updatedPages[pageIndex].elements.map(elem => 
+          elem.id === id ? { ...elem, ...updates } : elem
+        )
+      };
 
       const newCanvasState = {
         ...state.canvasState,
-        elements: updatedElements,
+        pages: updatedPages,
         history: {
-          past: [...state.canvasState.history.past, [...state.canvasState.elements]],
+          past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
           future: [],
         },
       };
@@ -100,7 +129,7 @@ const editorReducer = (
       // Also update the active report
       const updatedReports = state.openReports.map(report => 
         report.id === state.activeReportId 
-          ? { ...report, elements: updatedElements, updatedAt: new Date().toISOString() }
+          ? { ...report, pages: updatedPages, updatedAt: new Date().toISOString() }
           : report
       );
 
@@ -111,33 +140,36 @@ const editorReducer = (
       };
     }
     case "DELETE_ELEMENT": {
-      console.log("Reducer: DELETE_ELEMENT action received for element ID:", action.payload.id);
+      const { id, pageIndex = state.canvasState.currentPageIndex } = action.payload;
+      console.log("Reducer: DELETE_ELEMENT action received for element ID:", id);
+      
+      const updatedPages = [...state.canvasState.pages];
+      const currentPageElements = updatedPages[pageIndex].elements;
       
       // Check if the element exists before trying to delete it
-      const elementExists = state.canvasState.elements.some(
-        elem => elem.id === action.payload.id
-      );
+      const elementExists = currentPageElements.some(elem => elem.id === id);
       
       if (!elementExists) {
-        console.error("Element not found for deletion:", action.payload.id);
+        console.error("Element not found for deletion:", id);
         return state;
       }
       
-      const updatedElements = state.canvasState.elements.filter(
-        elem => elem.id !== action.payload.id
-      );
+      updatedPages[pageIndex] = {
+        ...updatedPages[pageIndex],
+        elements: currentPageElements.filter(elem => elem.id !== id)
+      };
       
-      console.log("Elements before deletion:", state.canvasState.elements.length);
-      console.log("Elements after deletion:", updatedElements.length);
+      console.log("Elements before deletion:", currentPageElements.length);
+      console.log("Elements after deletion:", updatedPages[pageIndex].elements.length);
 
       const newCanvasState = {
         ...state.canvasState,
-        elements: updatedElements,
+        pages: updatedPages,
         selectedElementIds: state.canvasState.selectedElementIds.filter(
-          id => id !== action.payload.id
+          elemId => elemId !== id
         ),
         history: {
-          past: [...state.canvasState.history.past, [...state.canvasState.elements]],
+          past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
           future: [],
         },
       };
@@ -145,7 +177,7 @@ const editorReducer = (
       // Also update the active report
       const updatedReports = state.openReports.map(report => 
         report.id === state.activeReportId 
-          ? { ...report, elements: updatedElements, updatedAt: new Date().toISOString() }
+          ? { ...report, pages: updatedPages, updatedAt: new Date().toISOString() }
           : report
       );
 
@@ -156,28 +188,44 @@ const editorReducer = (
       };
     }
     case "SELECT_ELEMENT": {
+      const currentPageIndex = state.canvasState.currentPageIndex;
+      const updatedPages = [...state.canvasState.pages];
+      
+      updatedPages[currentPageIndex] = {
+        ...updatedPages[currentPageIndex],
+        elements: updatedPages[currentPageIndex].elements.map(elem => ({
+          ...elem,
+          isSelected: elem.id === action.payload.id,
+        }))
+      };
+
       return {
         ...state,
         canvasState: {
           ...state.canvasState,
           selectedElementIds: [action.payload.id],
-          elements: state.canvasState.elements.map(elem => ({
-            ...elem,
-            isSelected: elem.id === action.payload.id,
-          })),
+          pages: updatedPages
         },
       };
     }
     case "CLEAR_SELECTION": {
+      const currentPageIndex = state.canvasState.currentPageIndex;
+      const updatedPages = [...state.canvasState.pages];
+      
+      updatedPages[currentPageIndex] = {
+        ...updatedPages[currentPageIndex],
+        elements: updatedPages[currentPageIndex].elements.map(elem => ({
+          ...elem,
+          isSelected: false,
+        }))
+      };
+
       return {
         ...state,
         canvasState: {
           ...state.canvasState,
           selectedElementIds: [],
-          elements: state.canvasState.elements.map(elem => ({
-            ...elem,
-            isSelected: false,
-          })),
+          pages: updatedPages
         },
       };
     }
@@ -188,8 +236,16 @@ const editorReducer = (
         return state;
       }
       
+      const newPages = [{
+        id: uuidv4(),
+        name: "Page 1",
+        elements: [...template.elements]
+      }];
+      
       const newCanvasState = {
-        elements: [...template.elements],
+        ...state.canvasState,
+        pages: newPages,
+        currentPageIndex: 0,
         selectedElementIds: [],
         history: {
           past: [],
@@ -202,7 +258,7 @@ const editorReducer = (
         report.id === state.activeReportId 
           ? { 
               ...report, 
-              elements: [...template.elements], 
+              pages: newPages, 
               templateId: template.id,
               updatedAt: new Date().toISOString() 
             }
@@ -225,17 +281,17 @@ const editorReducer = (
 
       const newCanvasState = {
         ...state.canvasState,
-        elements: previous,
+        pages: previous,
         history: {
           past: newPast,
-          future: [state.canvasState.elements, ...state.canvasState.history.future],
+          future: [state.canvasState.pages, ...state.canvasState.history.future],
         },
       };
 
       // Also update the active report
       const updatedReports = state.openReports.map(report => 
         report.id === state.activeReportId 
-          ? { ...report, elements: previous, updatedAt: new Date().toISOString() }
+          ? { ...report, pages: previous, updatedAt: new Date().toISOString() }
           : report
       );
 
@@ -255,9 +311,9 @@ const editorReducer = (
 
       const newCanvasState = {
         ...state.canvasState,
-        elements: next,
+        pages: next,
         history: {
-          past: [...state.canvasState.history.past, state.canvasState.elements],
+          past: [...state.canvasState.history.past, state.canvasState.pages],
           future: newFuture,
         },
       };
@@ -265,7 +321,7 @@ const editorReducer = (
       // Also update the active report
       const updatedReports = state.openReports.map(report => 
         report.id === state.activeReportId 
-          ? { ...report, elements: next, updatedAt: new Date().toISOString() }
+          ? { ...report, pages: next, updatedAt: new Date().toISOString() }
           : report
       );
 
@@ -284,11 +340,17 @@ const editorReducer = (
       }
       
       const newReportId = uuidv4();
+      const initialPages = [{
+        id: uuidv4(),
+        name: "Page 1",
+        elements: [...template.elements]
+      }];
+      
       const newReport: ReportDocument = {
         id: newReportId,
         name,
         templateId,
-        elements: [...template.elements],
+        pages: initialPages,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -298,7 +360,8 @@ const editorReducer = (
         openReports: [...state.openReports, newReport],
         activeReportId: newReportId,
         canvasState: {
-          elements: [...template.elements],
+          pages: initialPages,
+          currentPageIndex: 0,
           selectedElementIds: [],
           history: {
             past: [],
@@ -322,7 +385,8 @@ const editorReducer = (
         const activeReport = updatedReports.find(report => report.id === newActiveId);
         if (activeReport) {
           newCanvasState = {
-            elements: [...activeReport.elements],
+            pages: [...activeReport.pages],
+            currentPageIndex: 0,
             selectedElementIds: [],
             history: {
               past: [],
@@ -354,13 +418,125 @@ const editorReducer = (
         ...state,
         activeReportId: tabId,
         canvasState: {
-          elements: [...activeReport.elements],
+          pages: [...activeReport.pages],
+          currentPageIndex: 0,
           selectedElementIds: [],
           history: {
             past: [],
             future: [],
           },
         },
+      };
+    }
+    case "ADD_PAGE": {
+      const { name } = action.payload;
+      const newPage: Page = {
+        id: uuidv4(),
+        name,
+        elements: []
+      };
+      
+      const updatedPages = [...state.canvasState.pages, newPage];
+      const newCurrentIndex = updatedPages.length - 1;
+      
+      const newCanvasState = {
+        ...state.canvasState,
+        pages: updatedPages,
+        currentPageIndex: newCurrentIndex,
+        history: {
+          past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
+          future: [],
+        },
+      };
+      
+      // Update the active report
+      const updatedReports = state.openReports.map(report => 
+        report.id === state.activeReportId 
+          ? { ...report, pages: updatedPages, updatedAt: new Date().toISOString() }
+          : report
+      );
+      
+      return {
+        ...state,
+        canvasState: newCanvasState,
+        openReports: updatedReports,
+      };
+    }
+    case "REMOVE_PAGE": {
+      const { pageIndex } = action.payload;
+      
+      // Don't allow removing the last page
+      if (state.canvasState.pages.length <= 1) {
+        toast.error("Cannot remove the last page");
+        return state;
+      }
+      
+      const updatedPages = state.canvasState.pages.filter((_, index) => index !== pageIndex);
+      const newCurrentIndex = Math.min(state.canvasState.currentPageIndex, updatedPages.length - 1);
+      
+      const newCanvasState = {
+        ...state.canvasState,
+        pages: updatedPages,
+        currentPageIndex: newCurrentIndex,
+        history: {
+          past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
+          future: [],
+        },
+      };
+      
+      // Update the active report
+      const updatedReports = state.openReports.map(report => 
+        report.id === state.activeReportId 
+          ? { ...report, pages: updatedPages, updatedAt: new Date().toISOString() }
+          : report
+      );
+      
+      return {
+        ...state,
+        canvasState: newCanvasState,
+        openReports: updatedReports,
+      };
+    }
+    case "SET_CURRENT_PAGE": {
+      return {
+        ...state,
+        canvasState: {
+          ...state.canvasState,
+          currentPageIndex: action.payload.pageIndex,
+        },
+      };
+    }
+    case "RENAME_PAGE": {
+      const { pageIndex, name } = action.payload;
+      
+      const updatedPages = [...state.canvasState.pages];
+      if (pageIndex >= 0 && pageIndex < updatedPages.length) {
+        updatedPages[pageIndex] = {
+          ...updatedPages[pageIndex],
+          name
+        };
+      }
+      
+      const newCanvasState = {
+        ...state.canvasState,
+        pages: updatedPages,
+        history: {
+          past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
+          future: [],
+        },
+      };
+      
+      // Update the active report
+      const updatedReports = state.openReports.map(report => 
+        report.id === state.activeReportId 
+          ? { ...report, pages: updatedPages, updatedAt: new Date().toISOString() }
+          : report
+      );
+      
+      return {
+        ...state,
+        canvasState: newCanvasState,
+        openReports: updatedReports,
       };
     }
     case "SAVE_CANVAS": {
@@ -380,19 +556,19 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     activeReportId: null,
   });
 
-  const addElement = (element: Omit<ElementData, "id">) => {
+  const addElement = (element: Omit<ElementData, "id">, pageIndex?: number) => {
     const newElement = {
       ...element,
       id: uuidv4(),
     };
-    dispatch({ type: "ADD_ELEMENT", payload: { element: newElement as ElementData } });
+    dispatch({ type: "ADD_ELEMENT", payload: { element: newElement as ElementData, pageIndex } });
   };
 
-  const updateElement = (id: string, updates: Partial<ElementData>) => {
-    dispatch({ type: "UPDATE_ELEMENT", payload: { id, updates } });
+  const updateElement = (id: string, updates: Partial<ElementData>, pageIndex?: number) => {
+    dispatch({ type: "UPDATE_ELEMENT", payload: { id, updates, pageIndex } });
   };
 
-  const deleteElement = (id: string) => {
+  const deleteElement = (id: string, pageIndex?: number) => {
     console.log("Deleting element:", id);
     if (!id) {
       console.error("Attempted to delete element with no ID");
@@ -407,7 +583,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     
-    dispatch({ type: "DELETE_ELEMENT", payload: { id } });
+    dispatch({ type: "DELETE_ELEMENT", payload: { id, pageIndex } });
     toast.success("Element deleted successfully");
   };
 
@@ -451,6 +627,22 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return state.openReports.find(report => report.id === state.activeReportId) || null;
   };
 
+  const addPage = (name: string) => {
+    dispatch({ type: "ADD_PAGE", payload: { name } });
+  };
+
+  const removePage = (pageIndex: number) => {
+    dispatch({ type: "REMOVE_PAGE", payload: { pageIndex } });
+  };
+
+  const setCurrentPage = (pageIndex: number) => {
+    dispatch({ type: "SET_CURRENT_PAGE", payload: { pageIndex } });
+  };
+
+  const renamePage = (pageIndex: number, name: string) => {
+    dispatch({ type: "RENAME_PAGE", payload: { pageIndex, name } });
+  };
+
   return (
     <EditorContext.Provider
       value={{
@@ -471,6 +663,10 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         closeReport,
         setActiveReport,
         getActiveReport,
+        addPage,
+        removePage,
+        setCurrentPage,
+        renamePage,
       }}
     >
       {children}

@@ -27,7 +27,6 @@ export const PageControls = () => {
   const [newPageName, setNewPageName] = useState("");
   
   const { pages, currentPageIndex } = canvasState;
-  const currentPage = pages[currentPageIndex];
   
   const handleAddPage = () => {
     addPage(`Page ${pages.length + 1}`);

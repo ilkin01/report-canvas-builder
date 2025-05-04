@@ -18,6 +18,9 @@ export const EditorCanvas = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 1100 }); // A4 size at 96 DPI
   
+  const { pages, currentPageIndex } = canvasState;
+  const currentPage = pages[currentPageIndex];
+  
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (canvasRef.current && !canvasRef.current.contains(e.target as Node)) {
@@ -84,7 +87,7 @@ export const EditorCanvas = () => {
                   }
                 }}
               >
-                {canvasState.elements.map((element) => (
+                {currentPage && currentPage.elements.map((element) => (
                   <CanvasElement key={element.id} element={element} />
                 ))}
               </div>
