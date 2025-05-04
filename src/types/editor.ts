@@ -74,12 +74,19 @@ export type TableData = {
   units?: string[];
 };
 
-export interface CanvasState {
+export type Page = {
+  id: string;
+  name: string;
   elements: ElementData[];
+};
+
+export interface CanvasState {
+  pages: Page[];
+  currentPageIndex: number;
   selectedElementIds: string[];
   history: {
-    past: ElementData[][];
-    future: ElementData[][];
+    past: Page[][];
+    future: Page[][];
   };
 }
 
@@ -95,7 +102,7 @@ export type ReportDocument = {
   id: string;
   name: string;
   templateId: string;
-  elements: ElementData[];
+  pages: Page[];
   createdAt: string;
   updatedAt: string;
 };

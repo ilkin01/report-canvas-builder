@@ -12,6 +12,7 @@ import {
   ListPlus 
 } from "lucide-react";
 import { ElementProperties } from "../editor/properties/ElementProperties";
+import { PageControls } from "../editor/PageControls";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -19,7 +20,7 @@ export const AppSidebar = () => {
   const { addElement, canvasState, getActiveReport } = useEditor();
   
   const selectedElement = canvasState.selectedElementIds.length > 0
-    ? canvasState.elements.find(el => el.id === canvasState.selectedElementIds[0])
+    ? canvasState.pages[canvasState.currentPageIndex].elements.find(el => el.id === canvasState.selectedElementIds[0])
     : null;
 
   const activeReport = getActiveReport();
@@ -228,6 +229,7 @@ export const AppSidebar = () => {
 
   return (
     <div className="w-64 border-r bg-white h-[calc(100vh-4rem)] flex flex-col">
+      <PageControls />
       <Tabs defaultValue="elements" className="flex flex-col h-full">
         <TabsList className="grid grid-cols-2 w-full rounded-none border-b">
           <TabsTrigger value="elements">Elements</TabsTrigger>
