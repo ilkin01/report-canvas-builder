@@ -11,7 +11,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export const AppHeader = () => {
-  const { undo, redo, saveCanvas, canvasState, getActiveReport } = useEditor();
+  const { undo, redo, saveCanvas, canvasState, getActiveReport, setCurrentPage } = useEditor();
   const [newTemplateDialogOpen, setNewTemplateDialogOpen] = useState(false);
   
   const activeReport = getActiveReport();
@@ -32,6 +32,9 @@ export const AppHeader = () => {
         format: "a4"
       });
       
+      // Store current page index to restore it later
+      const currentPageIndex = canvasState.currentPageIndex;
+      
       // Loop through all pages
       for (let i = 0; i < canvasState.pages.length; i++) {
         // If not the first page, add a new page to the PDF
@@ -39,48 +42,46 @@ export const AppHeader = () => {
           pdf.addPage();
         }
         
-        // Get the canvas container - we'll clone it for each page to avoid state changes
+        // Set current page
+        setCurrentPage(i);
+        
+        // Give React time to re-render the page before capturing
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Get the canvas container
         const canvasContainer = document.querySelector('.canvas-container');
         if (!canvasContainer) {
           toast.error("Could not find report canvas");
-          return;
+          continue; // Skip this page but try to continue with others
         }
         
-        // Store current page index
-        const currentPageIndex = canvasState.currentPageIndex;
-        
-        // Temporarily switch to the page we want to export
-        // This is just to make sure the page's elements are rendered in the DOM
-        const { setCurrentPage } = useEditor();
-        setCurrentPage(i);
-        
-        // Give time for the React to re-render the page
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Capture the canvas for the current page
-        const canvas = await html2canvas(canvasContainer as HTMLElement, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-        });
-        
-        // Add the image to the PDF
-        const imgData = canvas.toDataURL('image/png');
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth * ratio, imgHeight * ratio);
-        
-        // Restore the original page index after capturing
-        if (i !== currentPageIndex) {
-          setCurrentPage(currentPageIndex);
+        try {
+          // Capture the canvas for the current page
+          const canvas = await html2canvas(canvasContainer as HTMLElement, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: "#ffffff",
+          });
+          
+          // Add the image to the PDF
+          const imgData = canvas.toDataURL('image/png');
+          const imgProps = pdf.getImageProperties(imgData);
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const imgWidth = canvas.width;
+          const imgHeight = canvas.height;
+          const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+          
+          pdf.addImage(imgData, 'PNG', 0, 0, imgWidth * ratio, imgHeight * ratio);
+        } catch (err) {
+          console.error(`Error capturing page ${i+1}:`, err);
+          toast.error(`Failed to capture page ${i+1}`);
         }
       }
+      
+      // Restore the original page index
+      setCurrentPage(currentPageIndex);
       
       // Save PDF
       pdf.save(`${activeReport.name.replace(/\s+/g, '_')}.pdf`);
@@ -88,6 +89,9 @@ export const AppHeader = () => {
     } catch (error) {
       console.error("PDF export error:", error);
       toast.error("Failed to export PDF. Please try again.");
+      
+      // Make sure we restore the current page even if there's an error
+      setCurrentPage(canvasState.currentPageIndex);
     }
   };
   
