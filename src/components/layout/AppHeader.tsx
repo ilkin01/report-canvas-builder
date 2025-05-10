@@ -56,24 +56,29 @@ export const AppHeader = () => {
         }
         
         try {
-          // Capture the canvas for the current page
+          // Capture the canvas with optimized settings
+          // Reduce scale from 2 to 1.5 for better file size
           const canvas = await html2canvas(canvasContainer as HTMLElement, {
-            scale: 2,
+            scale: 1.5, // Reduced scale for better file size
             useCORS: true,
             allowTaint: true,
             backgroundColor: "#ffffff",
+            // Add image quality optimization
+            logging: false,
+            imageTimeout: 15000,
           });
           
-          // Add the image to the PDF
-          const imgData = canvas.toDataURL('image/png');
-          const imgProps = pdf.getImageProperties(imgData);
+          // Add the image to the PDF with compression
+          // Use image compression by specifying quality
+          const imgData = canvas.toDataURL('image/jpeg', 0.85); // Use JPEG with 85% quality instead of PNG
+          
           const pdfWidth = pdf.internal.pageSize.getWidth();
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const imgWidth = canvas.width;
           const imgHeight = canvas.height;
           const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
           
-          pdf.addImage(imgData, 'PNG', 0, 0, imgWidth * ratio, imgHeight * ratio);
+          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth * ratio, imgHeight * ratio, undefined, 'MEDIUM'); // Add compression level
         } catch (err) {
           console.error(`Error capturing page ${i+1}:`, err);
           toast.error(`Failed to capture page ${i+1}`);
