@@ -20,7 +20,7 @@ export const TextElement: React.FC<TextElementProps> = ({ element }) => {
   const textAlign = content?.textAlign || "left";
   
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(text);
+  const [editText, setEditText] = useState<string>(typeof text === 'string' ? text : "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export const TextElement: React.FC<TextElementProps> = ({ element }) => {
         fontSize: `${fontSize}px`,
         fontWeight,
         color,
-        textAlign,
+        textAlign: textAlign as "left" | "center" | "right",
         cursor: isEditing ? "text" : "default",
       }}
       onDoubleClick={handleDoubleClick}
@@ -95,7 +95,7 @@ export const TextElement: React.FC<TextElementProps> = ({ element }) => {
             fontSize: `${fontSize}px`,
             fontWeight,
             color,
-            textAlign,
+            textAlign: textAlign as "left" | "center" | "right",
           }}
           onClick={(e) => e.stopPropagation()}
         />

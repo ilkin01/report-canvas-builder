@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { fetchAllReports, setActiveReport } from "@/redux/slices/reportsSlice";
+import { fetchAllReports, fetchReportById, setActiveReport } from "@/redux/slices/reportsSlice";
+import { toast } from "sonner";
 
 interface PatientsListProps {
   onReportSelect?: () => void;
@@ -36,10 +37,19 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
   };
   
   // Function to handle clicking on a report row
-  const handleReportClick = (reportId) => {
-    dispatch(setActiveReport(reportId));
-    if (onReportSelect) {
-      onReportSelect();
+  const handleReportClick = async (reportId) => {
+    try {
+      // Fetch the full report data first
+      await dispatch(fetchReportById(reportId)).unwrap();
+      // Then set it as active
+      dispatch(setActiveReport(reportId));
+      
+      if (onReportSelect) {
+        onReportSelect();
+      }
+    } catch (error) {
+      toast.error("Failed to load report");
+      console.error("Error loading report:", error);
     }
   };
 

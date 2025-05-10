@@ -7,15 +7,31 @@ import { PatientsList } from "@/components/patients/PatientsList";
 import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { fetchAllReports } from "@/redux/slices/reportsSlice";
+import { fetchAllTemplates } from "@/redux/slices/templatesSlice";
+import { toast } from "sonner";
 
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
   const dispatch = useAppDispatch();
-  const { reports } = useAppSelector(state => state.reports);
+  const { reports, activeReportId } = useAppSelector(state => state.reports);
   
   useEffect(() => {
-    dispatch(fetchAllReports());
+    // Load initial data
+    Promise.all([
+      dispatch(fetchAllReports()),
+      dispatch(fetchAllTemplates())
+    ]).catch(err => {
+      toast.error("Failed to load initial data");
+      console.error("Error loading initial data:", err);
+    });
   }, [dispatch]);
+
+  // Go to editor when we have an active report
+  useEffect(() => {
+    if (activeReportId) {
+      setIsEditing(true);
+    }
+  }, [activeReportId]);
 
   return (
     <EditorProvider>

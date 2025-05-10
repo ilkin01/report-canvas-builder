@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { setActiveReport, deleteExistingReport } from "@/redux/slices/reportsSlice";
+import { setActiveReport, deleteExistingReport, clearActiveReport } from "@/redux/slices/reportsSlice";
+import { toast } from "sonner";
 
 interface EditorCanvasProps {
   onClose?: () => void;
@@ -15,7 +16,8 @@ interface EditorCanvasProps {
 export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   const { 
     canvasState, 
-    clearSelection
+    clearSelection,
+    setActiveReport: editorSetActiveReport
   } = useEditor();
   
   const dispatch = useAppDispatch();
@@ -26,6 +28,16 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   
   const { pages, currentPageIndex } = canvasState;
   const currentPage = pages[currentPageIndex];
+
+  // Sync Redux activeReportId with EditorContext
+  useEffect(() => {
+    if (activeReportId && reports.length > 0) {
+      const report = reports.find(r => r.id === activeReportId);
+      if (report) {
+        editorSetActiveReport(activeReportId);
+      }
+    }
+  }, [activeReportId, reports, editorSetActiveReport]);
   
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -44,12 +56,27 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
     };
   }, [clearSelection]);
   
-  const handleCloseTab = (e: React.MouseEvent, reportId: string) => {
+  const handleCloseTab = async (e: React.MouseEvent, reportId: string) => {
     e.stopPropagation();
-    dispatch(deleteExistingReport(reportId));
+    try {
+      await dispatch(deleteExistingReport(reportId)).unwrap();
+      
+      if (reports.length <= 1) {
+        // If this was the last report, go back to the list view
+        if (onClose) {
+          dispatch(clearActiveReport());
+          onClose();
+        }
+      }
+      
+      toast.success("Report closed");
+    } catch (error) {
+      toast.error("Failed to close report");
+    }
   };
 
   const handleBackToList = () => {
+    dispatch(clearActiveReport());
     if (onClose) {
       onClose();
     }
@@ -113,7 +140,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
                   }
                 }}
               >
-                {currentPage && currentPage.elements.map((element) => (
+                {currentPage && currentPage.elements && currentPage.elements.map((element) => (
                   <CanvasElement key={element.id} element={element} />
                 ))}
               </div>
