@@ -1,9 +1,8 @@
-
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TemplateGallery } from "../editor/TemplateGallery";
-import { ArrowDown, Layers, Redo, Square, Undo } from "lucide-react";
+import { ArrowDown, Redo, Square, Undo } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
@@ -11,7 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export const AppHeader = () => {
-  const { undo, redo, saveCanvas, canvasState, getActiveReport, setCurrentPage } = useEditor();
+  const { undo, redo, canvasState, getActiveReport, setCurrentPage } = useEditor();
   const [newTemplateDialogOpen, setNewTemplateDialogOpen] = useState(false);
   
   const activeReport = getActiveReport();
@@ -194,15 +193,6 @@ export const AppHeader = () => {
             <TemplateGallery onSelectTemplate={() => setNewTemplateDialogOpen(false)} />
           </DialogContent>
         </Dialog>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={saveCanvas}
-          title="Save Report"
-        >
-          <Layers className="h-4 w-4 mr-1" /> Save
-        </Button>
         
         <div className="mx-2 h-6 border-l border-gray-200" />
         

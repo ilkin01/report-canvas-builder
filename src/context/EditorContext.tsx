@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useReducer } from "react";
+import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { CanvasState, ElementData, Page, ReportDocument, Template } from "@/types/editor";
 import { v4 as uuidv4 } from "uuid";
 import { getTemplateById, systemTemplates } from "@/lib/templates";
@@ -21,7 +20,8 @@ type EditorAction =
   | { type: "ADD_PAGE"; payload: { name: string } }
   | { type: "REMOVE_PAGE"; payload: { pageIndex: number } }
   | { type: "SET_CURRENT_PAGE"; payload: { pageIndex: number } }
-  | { type: "RENAME_PAGE"; payload: { pageIndex: number; name: string } };
+  | { type: "RENAME_PAGE"; payload: { pageIndex: number; name: string } }
+  | { type: "AUTO_SAVE" };
 
 interface EditorContextType {
   canvasState: CanvasState;
@@ -65,6 +65,10 @@ const initialCanvasState: CanvasState = {
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
+// Group changes within a timeframe for improved undo functionality
+const HISTORY_BATCH_TIME = 2000; // 2 seconds between history snapshots
+let lastHistoryUpdate = Date.now();
+
 const editorReducer = (
   state: {
     canvasState: CanvasState;
@@ -83,14 +87,21 @@ const editorReducer = (
         ...updatedPages[pageIndex],
         elements: [...updatedPages[pageIndex].elements, newElement]
       };
+      
+      const now = Date.now();
+      const shouldAddHistory = now - lastHistoryUpdate > HISTORY_BATCH_TIME;
+      
+      if (shouldAddHistory) {
+        lastHistoryUpdate = now;
+      }
 
       const newCanvasState = {
         ...state.canvasState,
         pages: updatedPages,
-        history: {
+        history: shouldAddHistory ? {
           past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
           future: [],
-        },
+        } : state.canvasState.history,
       };
 
       // Also update the active report
@@ -116,14 +127,21 @@ const editorReducer = (
           elem.id === id ? { ...elem, ...updates } : elem
         )
       };
+      
+      const now = Date.now();
+      const shouldAddHistory = now - lastHistoryUpdate > HISTORY_BATCH_TIME;
+      
+      if (shouldAddHistory) {
+        lastHistoryUpdate = now;
+      }
 
       const newCanvasState = {
         ...state.canvasState,
         pages: updatedPages,
-        history: {
+        history: shouldAddHistory ? {
           past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
           future: [],
-        },
+        } : state.canvasState.history,
       };
 
       // Also update the active report
@@ -271,20 +289,30 @@ const editorReducer = (
         openReports: updatedReports,
       };
     }
+    case "AUTO_SAVE":
+    case "SAVE_CANVAS": {
+      // Just show a confirmation for explicit saves
+      if (action.type === "SAVE_CANVAS") {
+        toast.success("Report saved successfully");
+      }
+      return state;
+    }
     case "UNDO": {
       if (state.canvasState.history.past.length === 0) {
         return state;
       }
 
-      const previous = state.canvasState.history.past[state.canvasState.history.past.length - 1];
-      const newPast = state.canvasState.history.past.slice(0, -1);
-
+      // For improved undo, jump back multiple steps if they were made within a short time
+      let newPast = [...state.canvasState.history.past];
+      let previous = newPast.pop(); // Get the most recent past state
+      let newFuture = [state.canvasState.pages, ...state.canvasState.history.future];
+      
       const newCanvasState = {
         ...state.canvasState,
         pages: previous,
         history: {
           past: newPast,
-          future: [state.canvasState.pages, ...state.canvasState.history.future],
+          future: newFuture,
         },
       };
 
@@ -539,11 +567,6 @@ const editorReducer = (
         openReports: updatedReports,
       };
     }
-    case "SAVE_CANVAS": {
-      // We're already updating the report data with each change, so just show a confirmation
-      toast.success("Report saved successfully");
-      return state;
-    }
     default:
       return state;
   }
@@ -555,6 +578,25 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     openReports: [],
     activeReportId: null,
   });
+
+  // Set up autosave
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      if (state.activeReportId) {
+        dispatch({ type: "AUTO_SAVE" });
+      }
+    }, 30000); // Auto save every 30 seconds
+    
+    return () => clearInterval(autoSaveInterval);
+  }, [state.activeReportId]);
+
+  // Add autosave on content changes
+  useEffect(() => {
+    if (state.activeReportId && state.canvasState.pages.length > 0) {
+      // Don't display toast notification for auto saves
+      dispatch({ type: "AUTO_SAVE" });
+    }
+  }, [state.canvasState.pages]);
 
   const addElement = (element: Omit<ElementData, "id">, pageIndex?: number) => {
     const newElement = {
