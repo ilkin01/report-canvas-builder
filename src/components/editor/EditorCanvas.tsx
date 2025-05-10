@@ -5,6 +5,8 @@ import { CanvasElement } from "./elements/CanvasElement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { setActiveReport, deleteExistingReport } from "@/redux/slices/reportsSlice";
 
 interface EditorCanvasProps {
   onClose?: () => void;
@@ -13,12 +15,12 @@ interface EditorCanvasProps {
 export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   const { 
     canvasState, 
-    clearSelection, 
-    openReports, 
-    activeReportId, 
-    setActiveReport, 
-    closeReport 
+    clearSelection
   } = useEditor();
+  
+  const dispatch = useAppDispatch();
+  const { reports, activeReportId } = useAppSelector(state => state.reports);
+  
   const canvasRef = useRef<HTMLDivElement>(null);
   const [canvasSize] = useState({ width: 800, height: 1100 }); // A4 size at 96 DPI
   
@@ -44,7 +46,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   
   const handleCloseTab = (e: React.MouseEvent, reportId: string) => {
     e.stopPropagation();
-    closeReport(reportId);
+    dispatch(deleteExistingReport(reportId));
   };
 
   const handleBackToList = () => {
@@ -55,10 +57,10 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
 
   return (
     <div className="flex-1 h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
-      {openReports.length > 0 ? (
+      {reports.length > 0 ? (
         <Tabs 
-          value={activeReportId || openReports[0].id} 
-          onValueChange={setActiveReport}
+          value={activeReportId || reports[0].id} 
+          onValueChange={(value) => dispatch(setActiveReport(value))}
           className="flex flex-col h-full"
         >
           <div className="border-b bg-gray-50 flex items-center">
@@ -73,7 +75,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
               </Button>
             )}
             <TabsList className="bg-transparent h-12 w-full flex overflow-x-auto">
-              {openReports.map((report) => (
+              {reports.map((report) => (
                 <TabsTrigger
                   key={report.id}
                   value={report.id}
@@ -91,7 +93,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
             </TabsList>
           </div>
           
-          {openReports.map((report) => (
+          {reports.map((report) => (
             <TabsContent 
               key={report.id} 
               value={report.id} 

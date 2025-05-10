@@ -1,15 +1,22 @@
 
-import { useEditor } from "@/context/EditorContext";
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { fetchAllReports, setActiveReport } from "@/redux/slices/reportsSlice";
 
 interface PatientsListProps {
   onReportSelect?: () => void;
 }
 
 export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) => {
-  const { openReports, setActiveReport } = useEditor();
+  const dispatch = useAppDispatch();
+  const { reports, loading, error } = useAppSelector(state => state.reports);
+
+  useEffect(() => {
+    dispatch(fetchAllReports());
+  }, [dispatch]);
 
   // Function to get a short excerpt from the report content
   const getDocumentExcerpt = (report) => {
@@ -30,7 +37,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
   
   // Function to handle clicking on a report row
   const handleReportClick = (reportId) => {
-    setActiveReport(reportId);
+    dispatch(setActiveReport(reportId));
     if (onReportSelect) {
       onReportSelect();
     }
@@ -42,7 +49,13 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
         <CardTitle>Patient Reports</CardTitle>
       </CardHeader>
       <CardContent>
-        {openReports.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-6">Loading reports...</div>
+        ) : error ? (
+          <div className="text-center py-6 text-red-500">
+            Error loading reports: {error}
+          </div>
+        ) : reports.length === 0 ? (
           <div className="text-center py-6 text-gray-500">
             No reports available. Create a new report to get started.
           </div>
@@ -56,7 +69,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {openReports.map((report) => (
+              {reports.map((report) => (
                 <TableRow 
                   key={report.id} 
                   className="cursor-pointer hover:bg-gray-100" 

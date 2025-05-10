@@ -5,9 +5,17 @@ import { EditorCanvas } from "@/components/editor/EditorCanvas";
 import { EditorProvider } from "@/context/EditorContext";
 import { PatientsList } from "@/components/patients/PatientsList";
 import { useState, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { fetchAllReports } from "@/redux/slices/reportsSlice";
 
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const dispatch = useAppDispatch();
+  const { reports } = useAppSelector(state => state.reports);
+  
+  useEffect(() => {
+    dispatch(fetchAllReports());
+  }, [dispatch]);
 
   return (
     <EditorProvider>
