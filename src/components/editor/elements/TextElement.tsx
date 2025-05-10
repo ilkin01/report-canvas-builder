@@ -11,9 +11,16 @@ interface TextElementProps {
 export const TextElement: React.FC<TextElementProps> = ({ element }) => {
   const { updateElement } = useEditor();
   const { content } = element;
-  const { text, fontSize = 16, fontWeight = "normal", color = "#333333", textAlign = "left" } = content;
+  
+  // Ensure content and its properties are properly defined with defaults
+  const text = content?.text || "";
+  const fontSize = content?.fontSize || 16;
+  const fontWeight = content?.fontWeight || "normal";
+  const color = content?.color || "#333333";
+  const textAlign = content?.textAlign || "left";
+  
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(text || "");
+  const [editText, setEditText] = useState(text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -25,7 +32,7 @@ export const TextElement: React.FC<TextElementProps> = ({ element }) => {
 
   // Update local state if element content changes
   useEffect(() => {
-    setEditText(text || "");
+    setEditText(typeof text === 'string' ? text : "");
   }, [text]);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -59,7 +66,7 @@ export const TextElement: React.FC<TextElementProps> = ({ element }) => {
       handleBlur();
     }
     if (e.key === "Escape") {
-      setEditText(text || "");
+      setEditText(typeof text === 'string' ? text : "");
       setIsEditing(false);
     }
   };
@@ -93,7 +100,7 @@ export const TextElement: React.FC<TextElementProps> = ({ element }) => {
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
-        <div className="whitespace-pre-wrap">{text}</div>
+        <div className="whitespace-pre-wrap">{typeof text === 'string' ? text : ""}</div>
       )}
     </div>
   );

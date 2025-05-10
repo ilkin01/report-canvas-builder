@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { EditorCanvas } from "@/components/editor/EditorCanvas";
 import { EditorProvider } from "@/context/EditorContext";
 import { PatientsList } from "@/components/patients/PatientsList";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -16,12 +16,12 @@ const Index = () => {
         <div className="flex flex-1 overflow-hidden">
           {!isEditing ? (
             <div className="p-6 w-full">
-              <PatientsList />
+              <PatientsList onReportSelect={() => setIsEditing(true)} />
             </div>
           ) : (
             <>
               <AppSidebar />
-              <EditorCanvas />
+              <EditorCanvas onClose={() => setIsEditing(false)} />
             </>
           )}
         </div>

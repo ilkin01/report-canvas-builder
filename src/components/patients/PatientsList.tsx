@@ -4,7 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
 
-export const PatientsList = () => {
+interface PatientsListProps {
+  onReportSelect?: () => void;
+}
+
+export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) => {
   const { openReports, setActiveReport } = useEditor();
 
   // Function to get a short excerpt from the report content
@@ -16,15 +20,20 @@ export const PatientsList = () => {
     if (textElements.length === 0) return "No text content";
     
     // Get the content of the first text element
-    const firstText = textElements[0].content || "";
+    const firstText = textElements[0].content?.text || "";
     
     // Return a short excerpt
-    return firstText.length > 60 ? firstText.substring(0, 60) + "..." : firstText;
+    return typeof firstText === 'string' && firstText.length > 60 
+      ? firstText.substring(0, 60) + "..." 
+      : firstText;
   };
   
   // Function to handle clicking on a report row
   const handleReportClick = (reportId) => {
     setActiveReport(reportId);
+    if (onReportSelect) {
+      onReportSelect();
+    }
   };
 
   return (

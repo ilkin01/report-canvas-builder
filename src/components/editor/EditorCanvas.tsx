@@ -3,9 +3,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { useEditor } from "@/context/EditorContext";
 import { CanvasElement } from "./elements/CanvasElement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X } from "lucide-react";
+import { X, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export const EditorCanvas = () => {
+interface EditorCanvasProps {
+  onClose?: () => void;
+}
+
+export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   const { 
     canvasState, 
     clearSelection, 
@@ -42,6 +47,12 @@ export const EditorCanvas = () => {
     closeReport(reportId);
   };
 
+  const handleBackToList = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
     <div className="flex-1 h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
       {openReports.length > 0 ? (
@@ -50,7 +61,17 @@ export const EditorCanvas = () => {
           onValueChange={setActiveReport}
           className="flex flex-col h-full"
         >
-          <div className="border-b bg-gray-50">
+          <div className="border-b bg-gray-50 flex items-center">
+            {onClose && (
+              <Button 
+                variant="ghost" 
+                onClick={handleBackToList} 
+                className="ml-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to List
+              </Button>
+            )}
             <TabsList className="bg-transparent h-12 w-full flex overflow-x-auto">
               {openReports.map((report) => (
                 <TabsTrigger
