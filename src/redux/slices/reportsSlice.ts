@@ -1,4 +1,3 @@
-
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ReportDocument, Page } from '@/types/editor';
 import { reportsApi } from '../api';
@@ -7,6 +6,7 @@ import { toast } from 'sonner';
 interface ReportsState {
   reports: ReportDocument[];
   activeReportId: string | null;
+  openedReportIds: string[]; // Açık olan raporların ID'lerini tutar
   loading: boolean;
   error: string | null;
 }
@@ -14,6 +14,7 @@ interface ReportsState {
 const initialState: ReportsState = {
   reports: [],
   activeReportId: null,
+  openedReportIds: [],
   loading: false,
   error: null,
 };
@@ -77,7 +78,7 @@ export const deleteExistingReport = createAsyncThunk(
       if (!success) {
         return rejectWithValue('Failed to delete report');
       }
-      return id;
+      return id; // Başarılı silme durumunda ID'yi döndür
     } catch (error) {
       return rejectWithValue('Failed to delete report');
     }
@@ -89,7 +90,18 @@ const reportsSlice = createSlice({
   initialState,
   reducers: {
     setActiveReport(state, action: PayloadAction<string>) {
-      state.activeReportId = action.payload;
+      // Sadece activeReportId'yi günceller, openedReportIds'e dokunmaz
+      // Eğer ID openedReportIds içinde yoksa, bu bir sorun olabilir,
+      // ama normalde sekmeye tıklama ile çağrılır, yani ID zaten orada olmalı.
+      if (state.openedReportIds.includes(action.payload)) {
+        state.activeReportId = action.payload;
+      } else {
+        // Bu durumun olmaması gerekir, ancak bir güvenlik önlemi olarak loglayabiliriz.
+        console.warn(`setActiveReport called with ID ${action.payload} not in openedReportIds.`);
+        // İsteğe bağlı olarak, bu durumda raporu açılmış gibi de ekleyebiliriz:
+        // state.openedReportIds.push(action.payload);
+        // state.activeReportId = action.payload;
+      }
     },
     updateReportPages(state, action: PayloadAction<{ reportId: string; pages: Page[] }>) {
       const { reportId, pages } = action.payload;
@@ -99,8 +111,30 @@ const reportsSlice = createSlice({
         report.updatedAt = new Date().toISOString();
       }
     },
-    clearActiveReport(state) {
+    viewReport(state, action: PayloadAction<string>) { // Hasta listesinden rapor açmak için
+      state.activeReportId = action.payload;
+      state.openedReportIds = [action.payload]; // Sadece bu raporu açık olarak ayarla
+      // Eğer rapor reports listesinde yoksa fetchReportById ile yüklenmiş olmalı.
+      // Burada ayrıca reports listesine ekleme kontrolü yapılabilir, ama fetchReportById bunu yapmalı.
+    },
+    closeReport(state, action: PayloadAction<string>) { // Sekme kapatmak için
+      const reportIdToClose = action.payload;
+      state.openedReportIds = state.openedReportIds.filter(id => id !== reportIdToClose);
+      if (state.activeReportId === reportIdToClose) {
+        state.activeReportId = state.openedReportIds.length > 0 
+          ? state.openedReportIds[state.openedReportIds.length - 1] // Son açık sekmeyi aktif yap
+          : null;
+      }
+    },
+    closeAllReports(state) { // Liste görünümüne dönmek için
       state.activeReportId = null;
+      state.openedReportIds = [];
+    },
+    clearActiveReport(state) { // Bu eylem artık closeAllReports ile birleştirilebilir.
+                              // Şimdilik uyumluluk için bırakıyoruz ama kullanımı gözden geçirilmeli.
+      state.activeReportId = null;
+      // openedReportIds'i de temizlemek mantıklı olabilir:
+      // state.openedReportIds = []; 
     }
   },
   extraReducers: (builder) => {
@@ -124,13 +158,15 @@ const reportsSlice = createSlice({
       state.error = null;
     });
     builder.addCase(fetchReportById.fulfilled, (state, action) => {
-      const index = state.reports.findIndex(r => r.id === action.payload.id);
+      const fetchedReport = action.payload;
+      const index = state.reports.findIndex(r => r.id === fetchedReport.id);
       if (index >= 0) {
-        state.reports[index] = action.payload;
+        state.reports[index] = fetchedReport;
       } else {
-        state.reports.push(action.payload);
+        state.reports.push(fetchedReport);
       }
-      state.activeReportId = action.payload.id;
+      // activeReportId ve openedReportIds burada viewReport ile yönetilecek,
+      // bu yüzden burada doğrudan set etmeye gerek yok. PatientList viewReport'u çağıracak.
       state.loading = false;
     });
     builder.addCase(fetchReportById.rejected, (state, action) => {
@@ -145,8 +181,12 @@ const reportsSlice = createSlice({
       state.error = null;
     });
     builder.addCase(createNewReport.fulfilled, (state, action) => {
-      state.reports.push(action.payload);
-      state.activeReportId = action.payload.id;
+      const newReport = action.payload;
+      state.reports.push(newReport);
+      state.activeReportId = newReport.id;
+      if (!state.openedReportIds.includes(newReport.id)) {
+        state.openedReportIds.push(newReport.id); // Yeni raporu açık sekmelere ekle
+      }
       state.loading = false;
     });
     builder.addCase(createNewReport.rejected, (state, action) => {
@@ -157,19 +197,20 @@ const reportsSlice = createSlice({
 
     // Update existing report
     builder.addCase(updateExistingReport.pending, (state) => {
-      state.loading = true;
+      // state.loading = true; // Genelde arka planda olur, loading göstermeyebiliriz.
     });
     builder.addCase(updateExistingReport.fulfilled, (state, action) => {
       const index = state.reports.findIndex(r => r.id === action.payload.id);
       if (index >= 0) {
         state.reports[index] = action.payload;
       }
-      state.loading = false;
+      // state.loading = false;
     });
     builder.addCase(updateExistingReport.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload as string;
-      toast.error(`Error: ${action.payload}`);
+      // state.loading = false;
+      state.error = action.payload as string; // Hata loglanabilir ama kullanıcıya toast gösterilmeyebilir.
+      console.error("Failed to update report in background:", action.payload);
+      // toast.error(`Error updating report: ${action.payload}`);
     });
 
     // Delete report
@@ -177,9 +218,14 @@ const reportsSlice = createSlice({
       state.loading = true;
     });
     builder.addCase(deleteExistingReport.fulfilled, (state, action) => {
-      state.reports = state.reports.filter(r => r.id !== action.payload);
-      if (state.activeReportId === action.payload) {
-        state.activeReportId = state.reports.length > 0 ? state.reports[0].id : null;
+      const deletedReportId = action.payload;
+      state.reports = state.reports.filter(r => r.id !== deletedReportId);
+      state.openedReportIds = state.openedReportIds.filter(id => id !== deletedReportId);
+      
+      if (state.activeReportId === deletedReportId) {
+        state.activeReportId = state.openedReportIds.length > 0
+          ? state.openedReportIds[state.openedReportIds.length - 1]
+          : null;
       }
       state.loading = false;
     });
@@ -191,6 +237,13 @@ const reportsSlice = createSlice({
   },
 });
 
-export const { setActiveReport, updateReportPages, clearActiveReport } = reportsSlice.actions;
+export const { 
+  setActiveReport, 
+  updateReportPages, 
+  clearActiveReport,
+  viewReport,
+  closeReport,
+  closeAllReports
+} = reportsSlice.actions;
 
 export default reportsSlice.reducer;

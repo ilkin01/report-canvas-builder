@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import { useEditor } from "@/context/EditorContext";
 import { CanvasElement } from "./elements/CanvasElement";
@@ -5,47 +6,58 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { setActiveReport as setReduxActiveReport, deleteExistingReport, clearActiveReport as clearReduxActiveReport } from "@/redux/slices/reportsSlice";
+import { 
+  setActiveReport as setReduxActiveReport, 
+  closeReport as reduxCloseReport, // closeReport eklendi
+  closeAllReports as reduxCloseAllReports, // closeAllReports eklendi
+  // deleteExistingReport, // Bu thunk'ı doğrudan burada kullanmayacağız, Redux halledecek
+} from "@/redux/slices/reportsSlice";
 import { toast } from "sonner";
-import { ReportDocument } from "@/types/editor";
+import { ReportDocument } from "@/types/editor"; // ReportDocument'ı buradan alıyoruz
 
 interface EditorCanvasProps {
   onClose?: () => void;
 }
 
+const DEFAULT_CANVAS_WIDTH = 800;
+const DEFAULT_CANVAS_HEIGHT = 1100;
+
 export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   const { 
     canvasState, 
     clearSelection,
-    setActiveReport: editorSetActiveReport
+    setActiveReport: editorSetActiveReport // Bu, EditorContext'in setActiveReport'u
   } = useEditor();
   
   const dispatch = useAppDispatch();
-  const { reports, activeReportId } = useAppSelector(state => state.reports);
+  // openedReportIds'i Redux store'dan alıyoruz
+  const { reports, activeReportId, openedReportIds } = useAppSelector(state => state.reports);
   
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [canvasSize] = useState({ width: 800, height: 1100 }); // A4 size at 96 DPI
+  // const [canvasSize] = useState({ width: 800, height: 1100 }); // Kaldırıldı, dinamik olacak
   
-  const currentPage = canvasState.pages[canvasState.currentPageIndex];
+  const currentPage = activeReportId ? canvasState.pages[canvasState.currentPageIndex] : null;
 
-  // Sync Redux activeReportId with EditorContext by passing the full report data
+  // Redux'taki aktif raporu EditorContext ile senkronize et
   useEffect(() => {
     if (activeReportId && reports.length > 0) {
       const reportFromRedux = reports.find(r => r.id === activeReportId);
       if (reportFromRedux) {
-        console.log("EditorCanvas: Syncing Redux active report to EditorContext:", reportFromRedux.name);
-        editorSetActiveReport(reportFromRedux);
+        // Sadece gerçekten farklıysa veya context'te aktif rapor yoksa güncelle
+        const currentEditorReport = editorSetActiveReport.length === 0 ? null : (useEditor().getActiveReport && useEditor().getActiveReport()); // getActiveReport'un varlığını kontrol et
+        if (!currentEditorReport || currentEditorReport.id !== reportFromRedux.id || JSON.stringify(currentEditorReport.pages) !== JSON.stringify(reportFromRedux.pages)) {
+          console.log("EditorCanvas: Syncing Redux active report to EditorContext:", reportFromRedux.name);
+          editorSetActiveReport(reportFromRedux);
+        }
       } else {
-        // ActiveReportId from Redux exists, but report not found in reports list (e.g., after delete)
-        console.log("EditorCanvas: Active report ID from Redux not found in reports list. Clearing context.");
-        editorSetActiveReport(null);
+        // console.log("EditorCanvas: Active report ID from Redux not found in reports list. Clearing context.");
+        editorSetActiveReport(null); // Aktif ID var ama rapor yoksa context'i temizle
       }
     } else if (!activeReportId) {
-      // No active report ID in Redux (e.g., all reports closed, or initial state)
-      console.log("EditorCanvas: No active report ID in Redux. Clearing context.");
-      editorSetActiveReport(null);
+      // console.log("EditorCanvas: No active report ID in Redux. Clearing context.");
+      editorSetActiveReport(null); // Aktif ID yoksa context'i temizle
     }
-  }, [activeReportId, reports, editorSetActiveReport]);
+  }, [activeReportId, reports, editorSetActiveReport, useEditor]); // useEditor'ı bağımlılıklara ekledik
   
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -62,69 +74,77 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [clearSelection]);
-  
-  const handleCloseTab = async (e: React.MouseEvent, reportIdToClose: string) => {
+
+  // Sekme kapatma işlemi
+  const handleCloseTab = (e: React.MouseEvent, reportIdToClose: string) => {
     e.stopPropagation();
-    try {
-      await dispatch(deleteExistingReport(reportIdToClose)).unwrap();
-      
-      if (reports.length <= 1) {
-        // If this was the last report, go back to the list view
-        if (onClose) {
-          dispatch(clearReduxActiveReport());
-          onClose();
-        }
-      }
-      
-      toast.success("Report closed");
-    } catch (error) {
-      toast.error("Failed to close report");
-      console.error("Error closing report:", error);
-    }
+    dispatch(reduxCloseReport(reportIdToClose));
+    toast.success("Report closed");
+    // Eğer kapatılan rapor son raporsa ve onClose varsa, useEffect tetikleyecek
   };
 
+  // Liste görünümüne dönme
   const handleBackToList = () => {
-    dispatch(clearReduxActiveReport()); 
-    if (onClose) {
-      onClose();
-    }
+    dispatch(reduxCloseAllReports()); 
+    // onClose çağrısı aşağıdaki useEffect tarafından yönetilecek
   };
 
-  // When user clicks a tab, set the active report in Redux.
+  // Aktif sekmeyi değiştirme
   const handleTabChange = (newActiveReportId: string) => {
     dispatch(setReduxActiveReport(newActiveReportId));
   };
 
+  // Filtrelenmiş rapor listesi (sadece açık olanlar)
+  const reportsForTabs = React.useMemo(() => {
+    return reports.filter(report => openedReportIds.includes(report.id));
+  }, [reports, openedReportIds]);
+
+  // Eğer hiç açık rapor kalmazsa ve onClose varsa, liste görünümüne dön
+  useEffect(() => {
+    if (onClose && activeReportId === null && openedReportIds && openedReportIds.length === 0) {
+      // Bu effect, EditorCanvas'ın render edildiği (isEditing=true) durumda çalışır.
+      // activeReportId null ve openedReportIds boş ise, liste görünümüne dönülmeli.
+      console.log("EditorCanvas: No open reports left. Calling onClose to go back to list.");
+      onClose();
+    }
+  }, [activeReportId, openedReportIds, onClose]);
+
+  const currentCanvasWidth = currentPage?.width || DEFAULT_CANVAS_WIDTH;
+  const currentCanvasHeight = currentPage?.height || DEFAULT_CANVAS_HEIGHT;
+
   return (
     <div className="flex-1 h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
-      {reports.length > 0 && activeReportId ? (
+      {reportsForTabs.length > 0 && activeReportId ? (
         <Tabs 
           value={activeReportId} 
           onValueChange={handleTabChange} 
           className="flex flex-col h-full"
         >
           <div className="border-b bg-gray-50 flex items-center">
-            {onClose && (
+            {onClose && ( // "Back to List" butonu her zaman görünür olmalı (eğer onClose varsa)
               <Button 
                 variant="ghost" 
                 onClick={handleBackToList} 
                 className="ml-2"
+                title="Back to reports list"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to List
               </Button>
             )}
-            <TabsList className="bg-transparent h-12 w-full flex overflow-x-auto">
-              {reports.map((report) => (
+            <TabsList className="bg-transparent h-12 flex-grow flex-shrink min-w-0 overflow-x-auto px-2">
+              {reportsForTabs.map((report) => (
                 <TabsTrigger
                   key={report.id}
                   value={report.id}
-                  className="flex items-center gap-2 py-3 px-4 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                  className="flex items-center gap-2 py-3 px-4 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none flex-shrink-0"
+                  title={report.name}
                 >
                   <span className="truncate max-w-[150px]">{report.name}</span>
                   <button
                     onClick={(e) => handleCloseTab(e, report.id)}
                     className="rounded-full hover:bg-gray-200 p-1"
+                    title={`Close ${report.name}`}
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -133,19 +153,20 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
             </TabsList>
           </div>
           
-          {reports.map((reportTabInfo) => (
+          {reportsForTabs.map((reportTabInfo) => (
             <TabsContent 
               key={reportTabInfo.id} 
               value={reportTabInfo.id} 
               className="flex-1 overflow-auto p-6 bg-gray-100 m-0"
             >
+              {/* Sadece aktif sekmenin içeriğini render et */}
               {reportTabInfo.id === activeReportId && currentPage && (
                 <div
                   ref={canvasRef}
                   className="canvas-container relative mx-auto shadow-lg"
                   style={{
-                    width: `${canvasSize.width}px`,
-                    height: `${canvasSize.height}px`,
+                    width: `${currentCanvasWidth}px`,
+                    height: `${currentCanvasHeight}px`,
                     backgroundColor: "white",
                   }}
                   onClick={(e) => {
@@ -169,7 +190,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
             <p className="text-gray-600 mb-6">
               No report is currently open. Start by creating a new report or opening an existing one from the list.
             </p>
-            {onClose && (
+            {onClose && ( // "Back to List" butonu burada da olmalı
               <Button 
                 onClick={handleBackToList} 
               >

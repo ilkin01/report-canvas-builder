@@ -1,10 +1,9 @@
-
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { fetchAllReports, fetchReportById, setActiveReport } from "@/redux/slices/reportsSlice";
+import { fetchAllReports, fetchReportById, viewReport } from "@/redux/slices/reportsSlice";
 import { toast } from "sonner";
 
 interface PatientsListProps {
@@ -16,33 +15,31 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
   const { reports, loading, error } = useAppSelector(state => state.reports);
 
   useEffect(() => {
-    dispatch(fetchAllReports());
+    // dispatch(fetchAllReports()); // Bu, Index.tsx'de zaten çağrılıyor olabilir. Tekrar çağırmak yerine oraya güvenebiliriz.
+                               // Eğer Index.tsx'de yoksa veya burada özel bir ihtiyaç varsa açılabilir.
   }, [dispatch]);
 
   // Function to get a short excerpt from the report content
-  const getDocumentExcerpt = (report) => {
-    if (!report.pages || !report.pages.length) return "No content";
+  const getDocumentExcerpt = (report: ReportDocument) => {
+    if (!report.pages || !report.pages.length || !report.pages[0].elements) return "No content";
     
-    // Find text elements in the first page
     const textElements = report.pages[0].elements.filter(el => el.type === "text");
     if (textElements.length === 0) return "No text content";
     
-    // Get the content of the first text element
-    const firstText = textElements[0].content?.text || "";
+    const firstTextContent = textElements[0].content;
+    // Check if content and content.text exist
+    const firstText = firstTextContent && typeof firstTextContent.text === 'string' ? firstTextContent.text : "";
     
-    // Return a short excerpt
-    return typeof firstText === 'string' && firstText.length > 60 
+    return firstText.length > 60 
       ? firstText.substring(0, 60) + "..." 
       : firstText;
   };
   
   // Function to handle clicking on a report row
-  const handleReportClick = async (reportId) => {
+  const handleReportClick = async (reportId: string) => {
     try {
-      // Fetch the full report data first
-      await dispatch(fetchReportById(reportId)).unwrap();
-      // Then set it as active
-      dispatch(setActiveReport(reportId));
+      await dispatch(fetchReportById(reportId)).unwrap(); // Raporun tam verisini çek
+      dispatch(viewReport(reportId)); // Raporu "görüntülenen" olarak ayarla (diğer sekmeleri temizler)
       
       if (onReportSelect) {
         onReportSelect();
@@ -59,7 +56,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
         <CardTitle>Patient Reports</CardTitle>
       </CardHeader>
       <CardContent>
-        {loading ? (
+        {loading && reports.length === 0 ? ( // Sadece başlangıç yüklemesinde göster
           <div className="text-center py-6">Loading reports...</div>
         ) : error ? (
           <div className="text-center py-6 text-red-500">

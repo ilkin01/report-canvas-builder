@@ -55,7 +55,9 @@ const initialCanvasState: CanvasState = {
     {
       id: uuidv4(),
       name: "Page 1",
-      elements: []
+      elements: [],
+      width: 800, // Varsayılan sayfa genişliği
+      height: 1100 // Varsayılan sayfa yüksekliği
     }
   ],
   currentPageIndex: 0,
@@ -128,16 +130,22 @@ const editorReducer = (
           updatedPages = [...state.canvasState.pages];
           const currentPageElements = updatedPages[pageIndex].elements;
           const elementExists = currentPageElements.some(elem => elem.id === id);
-          if (!elementExists) return state;
-          updatedPages[pageIndex] = {
-            ...updatedPages[pageIndex],
-            elements: currentPageElements.filter(elem => elem.id !== id)
-          };
+          if (!elementExists) return state; // Element not found, no change
+            updatedPages[pageIndex] = {
+              ...updatedPages[pageIndex],
+              elements: currentPageElements.filter(elem => elem.id !== id)
+            };
           break;
         }
         case "ADD_PAGE": {
           const { name } = action.payload;
-          const newPage: Page = { id: uuidv4(), name, elements: [] };
+          const newPage: Page = { 
+            id: uuidv4(), 
+            name, 
+            elements: [],
+            width: state.canvasState.pages[state.canvasState.currentPageIndex]?.width || 800, // Yeni sayfa mevcut sayfanın boyutunu alsın veya varsayılan
+            height: state.canvasState.pages[state.canvasState.currentPageIndex]?.height || 1100
+          };
           updatedPages = [...state.canvasState.pages, newPage];
           break;
         }
@@ -169,10 +177,7 @@ const editorReducer = (
       newCanvasState = {
         ...state.canvasState,
         pages: updatedPages,
-        // Adjust currentPageIndex for ADD_PAGE/REMOVE_PAGE
-        currentPageIndex: action.type === "ADD_PAGE" ? updatedPages.length - 1 : 
-                          action.type === "REMOVE_PAGE" ? Math.min(state.canvasState.currentPageIndex, updatedPages.length - 1) :
-                          state.canvasState.currentPageIndex,
+        currentPageIndex: action.type === "REMOVE_PAGE" ? Math.min(state.canvasState.currentPageIndex, updatedPages.length - 1) : state.canvasState.currentPageIndex,
         selectedElementIds: action.type === "DELETE_ELEMENT" ? state.canvasState.selectedElementIds.filter(elemId => elemId !== (action as any).payload.id) : state.canvasState.selectedElementIds,
         history: shouldAddHistory ? {
           past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
@@ -197,6 +202,9 @@ const editorReducer = (
       const currentPageIndex = state.canvasState.currentPageIndex;
       const updatedPages = [...state.canvasState.pages];
       
+      // Ensure page exists
+      if (!updatedPages[currentPageIndex]) return state;
+
       updatedPages[currentPageIndex] = {
         ...updatedPages[currentPageIndex],
         elements: updatedPages[currentPageIndex].elements.map(elem => ({
@@ -217,6 +225,9 @@ const editorReducer = (
     case "CLEAR_SELECTION": {
       const currentPageIndex = state.canvasState.currentPageIndex;
       const updatedPages = [...state.canvasState.pages];
+      
+      // Ensure page exists
+      if (!updatedPages[currentPageIndex]) return state;
       
       updatedPages[currentPageIndex] = {
         ...updatedPages[currentPageIndex],
@@ -246,7 +257,9 @@ const editorReducer = (
       const newPages = [{
         id: uuidv4(),
         name: "Page 1",
-        elements: JSON.parse(JSON.stringify(template.elements)) // Deep copy
+        elements: JSON.parse(JSON.stringify(template.elements)), // Deep copy
+        width: 800, // Varsayılan boyutlar
+        height: 1100
       }];
 
       const newCanvasState = {
@@ -285,12 +298,19 @@ const editorReducer = (
 
       let newPast = [...state.canvasState.history.past];
       let previousPagesState = newPast.pop()!; 
-      let newFuture = [state.canvasState.pages, ...state.canvasState.history.future];
+      // Ensure previousPagesState is an array of Pages, not Page[][]
+       if (!Array.isArray(previousPagesState) || (previousPagesState.length > 0 && !previousPagesState[0].elements)) {
+         console.error("Invalid state in history.past:", previousPagesState);
+         // Potentially try to recover or skip this history entry
+         return state; // Or try newPast.pop() again if robust recovery is desired
+       }
+
+      let newFuture = [JSON.parse(JSON.stringify(state.canvasState.pages)), ...state.canvasState.history.future];
       
       const newCanvasState = {
         ...state.canvasState,
-        pages: previousPagesState, // Restore previous pages
-        selectedElementIds: [], // Clear selection on undo/redo for simplicity
+        pages: previousPagesState, 
+        selectedElementIds: [], 
         history: {
           past: newPast,
           future: newFuture,
@@ -315,103 +335,113 @@ const editorReducer = (
       }
 
       const nextPagesState = state.canvasState.history.future[0];
-      const newFuture = state.canvasState.history.future.slice(1);
+      // Ensure nextPagesState is an array of Pages
+      if (!Array.isArray(nextPagesState) || (nextPagesState.length > 0 && !nextPagesState[0].elements)) {
+          console.error("Invalid state in history.future:", nextPagesState);
+          return state;
+       }
+       const newFuture = state.canvasState.history.future.slice(1);
+ 
+       const newCanvasState = {
+         ...state.canvasState,
+         pages: nextPagesState, 
+         selectedElementIds: [], 
+         history: {
+           past: [...state.canvasState.history.past, JSON.parse(JSON.stringify(state.canvasState.pages))],
+           future: newFuture,
+         },
+       };
 
-      const newCanvasState = {
-        ...state.canvasState,
-        pages: nextPagesState, // Restore next pages state
-        selectedElementIds: [], // Clear selection
-        history: {
-          past: [...state.canvasState.history.past, state.canvasState.pages],
-          future: newFuture,
-        },
-      };
+       const updatedOpenReports = state.openReports.map(report => 
+         report.id === state.activeReportId 
+           ? { ...report, pages: nextPagesState, updatedAt: new Date().toISOString() }
+           : report
+       );
 
-      const updatedOpenReports = state.openReports.map(report => 
-        report.id === state.activeReportId 
-          ? { ...report, pages: nextPagesState, updatedAt: new Date().toISOString() }
-          : report
-      );
-
-      return {
-        ...state,
-        canvasState: newCanvasState,
-        openReports: updatedOpenReports,
-      };
-    }
+       return {
+         ...state,
+         canvasState: newCanvasState,
+         openReports: updatedOpenReports,
+       };
+     }
     // CREATE_REPORT and CLOSE_REPORT cases in context are removed as Redux handles report lifecycle.
     // The context is now informed about the active report via LOAD_REPORT_DATA.
 
     case "LOAD_REPORT_DATA": {
       const { report } = action.payload;
       if (report) {
-        // Deep copy pages to prevent direct mutation of Redux state if report object is passed by reference
-        const reportPages = JSON.parse(JSON.stringify(report.pages));
+        const reportPagesWithDefaults = report.pages.map(p => ({
+          ...p,
+          width: p.width || 800, // Eksikse varsayılan ata
+          height: p.height || 1100, // Eksikse varsayılan ata
+        }));
         
-        // Check if we are already displaying this report's version of pages.
-        // This is critical to break update loops.
+        const reportPagesString = JSON.stringify(reportPagesWithDefaults);
+
         if (state.activeReportId === report.id && 
-            JSON.stringify(state.canvasState.pages) === JSON.stringify(reportPages)) {
+            JSON.stringify(state.canvasState.pages) === reportPagesString) {
           console.log(`EditorContext: LOAD_REPORT_DATA for report ${report.id}. Pages are already current. Canvas state will not change.`);
           
-          // Still update openReports cache if the report object itself has changed (e.g. name, updatedAt)
-          // This prevents stale data in getActiveReport() if only metadata changed.
           const existingReportIndex = state.openReports.findIndex(r => r.id === report.id);
           let reportNeedsUpdateInCache = true;
           if (existingReportIndex > -1) {
-            // Compare the full report object from payload with the one in cache
-             if (JSON.stringify(state.openReports[existingReportIndex]) === JSON.stringify(report)) {
+             const cachedReportCopy = JSON.parse(JSON.stringify(state.openReports[existingReportIndex]));
+             // Compare pages with defaults applied to the incoming report for consistency
+             const incomingReportWithDefaultPages = {...report, pages: reportPagesWithDefaults};
+             if (JSON.stringify(cachedReportCopy) === JSON.stringify(incomingReportWithDefaultPages)) {
                 reportNeedsUpdateInCache = false;
              }
           }
 
           if (reportNeedsUpdateInCache) {
-            console.log(`EditorContext: LOAD_REPORT_DATA for report ${report.id}. Updating openReports cache only.`);
+            console.log(`EditorContext: LOAD_REPORT_DATA for report ${report.id}. Updating openReports cache only (metadata or defaults).`);
             let updatedOpenReports;
+            const reportToCache = {...report, pages: reportPagesWithDefaults}; // Cache with defaults
             if (existingReportIndex > -1) {
               updatedOpenReports = [...state.openReports];
-              // Ensure we are storing a deep copy of the report in our cache as well
-              updatedOpenReports[existingReportIndex] = JSON.parse(JSON.stringify(report));
+              updatedOpenReports[existingReportIndex] = JSON.parse(JSON.stringify(reportToCache));
             } else {
-              // This case (report not in cache but pages match current canvas for same ID) is unlikely but handle it.
-              updatedOpenReports = [...state.openReports, JSON.parse(JSON.stringify(report))];
+              updatedOpenReports = [...state.openReports, JSON.parse(JSON.stringify(reportToCache))];
             }
-            return { ...state, openReports: updatedOpenReports };
+            return { ...state, openReports: updatedOpenReports, activeReportId: report.id }; // Ensure activeReportId is set if it changed
           }
-          return state; // No change needed to canvasState or openReports if everything matches
+          // If activeReportId is different, ensure it's updated even if pages are same
+          if (state.activeReportId !== report.id) {
+            return { ...state, activeReportId: report.id };
+          }
+          return state; 
         }
         
         console.log(`EditorContext: LOAD_REPORT_DATA for report ${report.id}. Updating canvasState and openReports cache.`);
-        // Update openReports cache in context
         const existingReportIndex = state.openReports.findIndex(r => r.id === report.id);
         let updatedOpenReports;
+        const reportToCache = {...report, pages: reportPagesWithDefaults};
+
         if (existingReportIndex > -1) {
           updatedOpenReports = [...state.openReports];
-          updatedOpenReports[existingReportIndex] = JSON.parse(JSON.stringify(report)); // Store with copied pages
+          updatedOpenReports[existingReportIndex] = JSON.parse(JSON.stringify(reportToCache));
         } else {
-          updatedOpenReports = [...state.openReports, JSON.parse(JSON.stringify(report))];
+          updatedOpenReports = [...state.openReports, JSON.parse(JSON.stringify(reportToCache))];
         }
         
         return {
           ...state,
           activeReportId: report.id,
           canvasState: {
-            pages: reportPages,
-            currentPageIndex: 0, // Reset to first page when loading new report data
+            ...initialCanvasState, // Reset canvas state aspects like history
+            pages: reportPagesWithDefaults, // Use pages with defaults
+            currentPageIndex: 0, 
             selectedElementIds: [],
-            history: { past: [], future: [] }, // Reset history for the new/updated report content
           },
           openReports: updatedOpenReports,
         };
       } else {
-        // report is null, so clear active report in context
         console.log("EditorContext: LOAD_REPORT_DATA with null report. Clearing active report and canvas state.");
         return {
           ...state,
           activeReportId: null,
           canvasState: initialCanvasState,
-          // openReports: [], // Optionally clear openReports, or leave as is.
-                           // Let's clear if no report is active to reflect a truly empty editor.
+          // openReports: [] // Optionally clear cache or leave as is. Current behavior seems to keep it.
         };
       }
     }
@@ -422,7 +452,7 @@ const editorReducer = (
         canvasState: {
           ...state.canvasState,
           currentPageIndex: action.payload.pageIndex,
-          selectedElementIds: [], // Clear selection when changing page
+          selectedElementIds: [], 
         },
       };
     }
@@ -433,68 +463,67 @@ const editorReducer = (
 
 export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(editorReducer, initialEditorReducerState);
-  const reduxDispatch = useAppDispatch(); // For dispatching actions to Redux store
+  const reduxDispatch = useAppDispatch();
 
   // Effect to sync canvasState.pages changes to Redux store
   useEffect(() => {
     if (state.activeReportId && state.canvasState.pages) {
-      // Check if the pages in canvasState are meaningfully different from what might be in openReports cache.
-      // This is to avoid loops if the initial load also triggers this.
-      // A simple way is to ensure this runs only after an interaction.
-      // The history mechanism can be a proxy for "user has made changes".
-      // For now, let's assume any change to canvasState.pages for an active report should be synced.
-
       const activeReportInContextCache = state.openReports.find(r => r.id === state.activeReportId);
+      // Ensure pages are deeply compared
       if (activeReportInContextCache && JSON.stringify(activeReportInContextCache.pages) !== JSON.stringify(state.canvasState.pages)) {
          console.log("EditorContext: Page content changed for active report. Syncing to Redux via updateReportPages.");
          reduxDispatch(updateReportPages({
            reportId: state.activeReportId,
-           pages: JSON.parse(JSON.stringify(state.canvasState.pages)) // Send a deep copy
+           pages: JSON.parse(JSON.stringify(state.canvasState.pages)) 
          }));
+      } else if (!activeReportInContextCache && state.canvasState.pages.length > 0) {
+        // This case might happen if context cache is cleared but canvas state is still there for an active report ID
+        // Or, if a report is loaded for the first time directly into canvas state before context cache is populated
+        console.log("EditorContext: Active report not in context cache or pages mismatch significantly, syncing to Redux.");
+        reduxDispatch(updateReportPages({
+          reportId: state.activeReportId,
+          pages: JSON.parse(JSON.stringify(state.canvasState.pages))
+        }));
       }
     }
   }, [state.canvasState.pages, state.activeReportId, state.openReports, reduxDispatch]);
 
 
-  // Auto-save on interval (if an active report is loaded)
+  // Auto-save on interval
   useEffect(() => {
     const autoSaveInterval = setInterval(() => {
-      if (state.activeReportId) {
-        // The SAVE_CANVAS/AUTO_SAVE action itself doesn't change context state here.
-        // The actual saving to Redux is handled by the useEffect above, which reacts to page changes.
-        // We can dispatch AUTO_SAVE to potentially trigger other logic if needed, or just rely on page changes.
-        // For explicit "Save" button, dispatch SAVE_CANVAS.
-        console.log("EditorContext: Auto-save interval, changes to pages will be synced by other effect.");
-        // If we want to force a sync even if pages haven't "changed" according to the above effect's heuristic:
-        // dispatch({ type: "AUTO_SAVE" }); // then handle this in the reducer to mark dirty or directly call reduxDispatch
-        if (state.activeReportId && state.canvasState.pages) {
+      if (state.activeReportId && state.canvasState.pages.length > 0) { // Ensure there are pages to save
+        // Check if there are actual changes to save by comparing with the cached version
+        const activeReportInContextCache = state.openReports.find(r => r.id === state.activeReportId);
+        if (!activeReportInContextCache || JSON.stringify(activeReportInContextCache.pages) !== JSON.stringify(state.canvasState.pages)) {
+           console.log("EditorContext: Auto-saving changes to Redux.");
            reduxDispatch(updateReportPages({
              reportId: state.activeReportId,
              pages: JSON.parse(JSON.stringify(state.canvasState.pages))
            }));
-           toast.success("Report auto-saved to Redux");
+           // toast.success("Report auto-saved"); // Might be too frequent
+        } else {
+           console.log("EditorContext: Auto-save interval, no changes to sync.");
         }
-
       }
-    }, 30000); // Auto save every 30 seconds
+    }, 30000); 
     
     return () => clearInterval(autoSaveInterval);
-  }, [state.activeReportId, state.canvasState.pages, reduxDispatch]);
+  }, [state.activeReportId, state.canvasState.pages, state.openReports, reduxDispatch]);
 
-
-  const addElement = (element: Omit<ElementData, "id">, pageIndex?: number) => {
+  const addElement = useCallback((element: Omit<ElementData, "id">, pageIndex?: number) => {
     const newElementWithId = {
       ...element,
       id: uuidv4(),
     };
     dispatch({ type: "ADD_ELEMENT", payload: { element: newElementWithId as ElementData, pageIndex } });
-  };
+  }, []);
 
-  const updateElement = (id: string, updates: Partial<ElementData>, pageIndex?: number) => {
+  const updateElement = useCallback((id: string, updates: Partial<ElementData>, pageIndex?: number) => {
     dispatch({ type: "UPDATE_ELEMENT", payload: { id, updates, pageIndex } });
-  };
+  }, []);
 
-  const deleteElement = (id: string, pageIndex?: number) => {
+  const deleteElement = useCallback((id: string, pageIndex?: number) => {
     if (!id) {
       toast.error("Cannot delete element: No element ID provided");
       return;
@@ -504,83 +533,77 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     dispatch({ type: "DELETE_ELEMENT", payload: { id, pageIndex } });
-    toast.success("Element deleted"); // Optimistic UI
-  };
+    toast.success("Element deleted");
+  }, [state.activeReportId]);
 
-  const selectElement = (id: string) => {
+  const selectElement = useCallback((id: string) => {
     dispatch({ type: "SELECT_ELEMENT", payload: { id } });
-  };
+  }, []);
 
-  const clearSelection = () => {
+  const clearSelection = useCallback(() => {
     dispatch({ type: "CLEAR_SELECTION" });
-  };
+  }, []);
 
-  const loadTemplate = (templateId: string) => {
-    // This should ideally trigger creation of a new report using this template via Redux.
-    // For now, it loads template into current canvas, which might be confusing.
-    // Consider removing this or changing its behavior.
-    // If used, it will overwrite current canvasState.pages.
-    toast.info("Loading template elements into current view. This may overwrite unsaved changes.");
+  const loadTemplate = useCallback((templateId: string) => {
+    toast.info("Loading template elements. This will overwrite current report's content.");
     dispatch({ type: "LOAD_TEMPLATE", payload: { templateId } });
-  };
+  }, []);
 
-  const saveCanvas = () => { // Explicit save action
+  const saveCanvas = useCallback(() => { 
     if (state.activeReportId && state.canvasState.pages) {
       console.log("EditorContext: saveCanvas dispatching updateReportPages.");
       reduxDispatch(updateReportPages({
         reportId: state.activeReportId,
         pages: JSON.parse(JSON.stringify(state.canvasState.pages))
       }));
-      toast.success("Report changes saved"); // Removed "(simulated)"
+      toast.success("Report changes saved"); 
     } else {
       toast.warning("No active report to save.");
     }
-    // dispatch({ type: "SAVE_CANVAS" }); // This action is now mostly a signal
-  };
+  }, [state.activeReportId, state.canvasState.pages, reduxDispatch]);
 
-  const undo = () => dispatch({ type: "UNDO" });
-  const redo = () => dispatch({ type: "REDO" });
-  
-  // createReport and closeReport are handled by Redux and App-level logic
-  // The EditorContext is informed via setActiveReport.
+  const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
+  const redo = useCallback(() => dispatch({ type: "REDO" }), []);
   
   const setActiveReport = useCallback((report: ReportDocument | null) => {
-    console.log("EditorContext: public setActiveReport called via context with report:", report ? report.name : 'null');
+    console.log("EditorContext: public setActiveReport called via context with report:", report ? `${report.name} (ID: ${report.id})` : 'null');
     dispatch({ type: "LOAD_REPORT_DATA", payload: { report } });
-  }, []); // dispatch is stable, so empty dependency array is fine.
+  }, []); 
   
   const getActiveReport = useCallback((): ReportDocument | null => {
     if (!state.activeReportId) return null;
     return state.openReports.find(report => report.id === state.activeReportId) || null;
-  }, [state.activeReportId, state.openReports]); // Dependencies for getActiveReport
+  }, [state.activeReportId, state.openReports]);
 
-  const addPage = (name: string = `Page ${state.canvasState.pages.length + 1}`) => {
+  const addPage = useCallback((name?: string) => {
     if (!state.activeReportId) {
       toast.error("Please select a report to add a page.");
       return;
     }
-    dispatch({ type: "ADD_PAGE", payload: { name } });
-  };
+    const newPageName = name || `Page ${state.canvasState.pages.length + 1}`;
+    dispatch({ type: "ADD_PAGE", payload: { name: newPageName } });
+    toast.success(`Added new page: ${newPageName}`);
+  }, [state.activeReportId, state.canvasState.pages.length]);
 
-  const removePage = (pageIndex: number) => {
+  const removePage = useCallback((pageIndex: number) => {
      if (!state.activeReportId) {
       toast.error("Please select a report to remove a page.");
       return;
     }
     dispatch({ type: "REMOVE_PAGE", payload: { pageIndex } });
-  };
+  }, [state.activeReportId]);
 
-  const setCurrentPage = (pageIndex: number) => {
+  const setCurrentPage = useCallback((pageIndex: number) => {
     dispatch({ type: "SET_CURRENT_PAGE", payload: { pageIndex } });
-  };
+  }, []);
 
-  const renamePage = (pageIndex: number, name: string) => {
+  const renamePage = useCallback((pageIndex: number, name: string) => {
     if (!state.activeReportId) {
       toast.error("Please select a report to rename a page.");
       return;
     }
     dispatch({ type: "RENAME_PAGE", payload: { pageIndex, name } });
-  };
+  }, [state.activeReportId]);
 
   return (
     <EditorContext.Provider

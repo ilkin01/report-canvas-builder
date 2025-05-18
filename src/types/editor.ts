@@ -78,6 +78,8 @@ export type Page = {
   id: string;
   name: string;
   elements: ElementData[];
+  width?: number; // Sayfa genişliği (opsiyonel)
+  height?: number; // Sayfa yüksekliği (opsiyonel)
 };
 
 export interface CanvasState {
@@ -85,8 +87,8 @@ export interface CanvasState {
   currentPageIndex: number;
   selectedElementIds: string[];
   history: {
-    past: Page[][];
-    future: Page[][];
+    past: Page[][]; // History now stores arrays of Page arrays
+    future: Page[][]; // History now stores arrays of Page arrays
   };
 }
 
