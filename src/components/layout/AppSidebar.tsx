@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { ElementType } from "@/types/editor";
@@ -32,7 +31,7 @@ export const AppSidebar = () => {
     if (selectedElement && activeTab !== "properties") {
       setActiveTab("properties");
     }
-  }, [selectedElement]);
+  }, [selectedElement, activeTab]); // Added activeTab to the dependency array
 
   const handleAddElement = (type: ElementType) => {
     if (!activeReport) {
