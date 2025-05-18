@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { ElementType } from "@/types/editor";
@@ -26,13 +27,13 @@ export const AppSidebar = () => {
 
   const activeReport = getActiveReport();
   
-  // Automatically switch to properties tab when an element is selected
+  // Fix: Only switch to properties tab when an element is newly selected
   useEffect(() => {
     if (selectedElement && activeTab !== "properties") {
       setActiveTab("properties");
     }
-  }, [selectedElement, activeTab]); // Added activeTab to the dependency array
-
+  }, [selectedElement]); // Only depend on selectedElement, not activeTab to avoid circular updates
+  
   const handleAddElement = (type: ElementType) => {
     if (!activeReport) {
       toast.error("Please open or create a report first");
