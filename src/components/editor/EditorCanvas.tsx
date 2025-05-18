@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { useEditor } from "@/context/EditorContext";
 import { CanvasElement } from "./elements/CanvasElement";
@@ -6,8 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { setActiveReport, deleteExistingReport, clearActiveReport } from "@/redux/slices/reportsSlice";
+import { setActiveReport as setReduxActiveReport, deleteExistingReport, clearActiveReport as clearReduxActiveReport } from "@/redux/slices/reportsSlice";
 import { toast } from "sonner";
+import { ReportDocument } from "@/types/editor";
 
 interface EditorCanvasProps {
   onClose?: () => void;
@@ -26,22 +26,29 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [canvasSize] = useState({ width: 800, height: 1100 }); // A4 size at 96 DPI
   
-  const { pages, currentPageIndex } = canvasState;
-  const currentPage = pages[currentPageIndex];
+  const currentPage = canvasState.pages[canvasState.currentPageIndex];
 
-  // Sync Redux activeReportId with EditorContext
+  // Sync Redux activeReportId with EditorContext by passing the full report data
   useEffect(() => {
     if (activeReportId && reports.length > 0) {
-      const report = reports.find(r => r.id === activeReportId);
-      if (report) {
-        editorSetActiveReport(activeReportId);
+      const reportFromRedux = reports.find(r => r.id === activeReportId);
+      if (reportFromRedux) {
+        console.log("EditorCanvas: Syncing Redux active report to EditorContext:", reportFromRedux.name);
+        editorSetActiveReport(reportFromRedux);
+      } else {
+        // ActiveReportId from Redux exists, but report not found in reports list (e.g., after delete)
+        console.log("EditorCanvas: Active report ID from Redux not found in reports list. Clearing context.");
+        editorSetActiveReport(null);
       }
+    } else if (!activeReportId) {
+      // No active report ID in Redux (e.g., all reports closed, or initial state)
+      console.log("EditorCanvas: No active report ID in Redux. Clearing context.");
+      editorSetActiveReport(null);
     }
   }, [activeReportId, reports, editorSetActiveReport]);
   
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      // Only clear selection if clicking directly on the canvas container, not on elements or properties panel
       if (canvasRef.current && 
           e.target instanceof Node && 
           canvasRef.current.contains(e.target) && 
@@ -56,15 +63,15 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
     };
   }, [clearSelection]);
   
-  const handleCloseTab = async (e: React.MouseEvent, reportId: string) => {
+  const handleCloseTab = async (e: React.MouseEvent, reportIdToClose: string) => {
     e.stopPropagation();
     try {
-      await dispatch(deleteExistingReport(reportId)).unwrap();
+      await dispatch(deleteExistingReport(reportIdToClose)).unwrap();
       
       if (reports.length <= 1) {
         // If this was the last report, go back to the list view
         if (onClose) {
-          dispatch(clearActiveReport());
+          dispatch(clearReduxActiveReport());
           onClose();
         }
       }
@@ -72,22 +79,28 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
       toast.success("Report closed");
     } catch (error) {
       toast.error("Failed to close report");
+      console.error("Error closing report:", error);
     }
   };
 
   const handleBackToList = () => {
-    dispatch(clearActiveReport());
+    dispatch(clearReduxActiveReport()); 
     if (onClose) {
       onClose();
     }
   };
 
+  // When user clicks a tab, set the active report in Redux.
+  const handleTabChange = (newActiveReportId: string) => {
+    dispatch(setReduxActiveReport(newActiveReportId));
+  };
+
   return (
     <div className="flex-1 h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
-      {reports.length > 0 ? (
+      {reports.length > 0 && activeReportId ? (
         <Tabs 
-          value={activeReportId || reports[0].id} 
-          onValueChange={(value) => dispatch(setActiveReport(value))}
+          value={activeReportId} 
+          onValueChange={handleTabChange} 
           className="flex flex-col h-full"
         >
           <div className="border-b bg-gray-50 flex items-center">
@@ -120,30 +133,32 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
             </TabsList>
           </div>
           
-          {reports.map((report) => (
+          {reports.map((reportTabInfo) => (
             <TabsContent 
-              key={report.id} 
-              value={report.id} 
+              key={reportTabInfo.id} 
+              value={reportTabInfo.id} 
               className="flex-1 overflow-auto p-6 bg-gray-100 m-0"
             >
-              <div
-                ref={canvasRef}
-                className="canvas-container relative mx-auto shadow-lg"
-                style={{
-                  width: `${canvasSize.width}px`,
-                  height: `${canvasSize.height}px`,
-                  backgroundColor: "white",
-                }}
-                onClick={(e) => {
-                  if (e.currentTarget === e.target) {
-                    clearSelection();
-                  }
-                }}
-              >
-                {currentPage && currentPage.elements && currentPage.elements.map((element) => (
-                  <CanvasElement key={element.id} element={element} />
-                ))}
-              </div>
+              {reportTabInfo.id === activeReportId && currentPage && (
+                <div
+                  ref={canvasRef}
+                  className="canvas-container relative mx-auto shadow-lg"
+                  style={{
+                    width: `${canvasSize.width}px`,
+                    height: `${canvasSize.height}px`,
+                    backgroundColor: "white",
+                  }}
+                  onClick={(e) => {
+                    if (e.currentTarget === e.target) {
+                      clearSelection();
+                    }
+                  }}
+                >
+                  {currentPage.elements && currentPage.elements.map((element) => (
+                    <CanvasElement key={element.id} element={element} />
+                  ))}
+                </div>
+              )}
             </TabsContent>
           ))}
         </Tabs>
@@ -152,15 +167,16 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
           <div className="text-center p-8 bg-white rounded-lg shadow-sm max-w-md">
             <h2 className="text-2xl font-bold text-medical-blue mb-2">Welcome to Inframed Life</h2>
             <p className="text-gray-600 mb-6">
-              Start by creating a new report from one of our templates or from scratch.
+              No report is currently open. Start by creating a new report or opening an existing one from the list.
             </p>
-            <div className="flex justify-center">
-              <img 
-                src="/placeholder.svg" 
-                alt="Inframed Life Logo" 
-                className="w-32 h-32 opacity-70"
-              />
-            </div>
+            {onClose && (
+              <Button 
+                onClick={handleBackToList} 
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to List
+              </Button>
+            )}
           </div>
         </div>
       )}
