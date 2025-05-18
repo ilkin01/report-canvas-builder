@@ -498,7 +498,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }));
       toast.success("Report changes saved to Redux (simulated)");
     } else {
-      toast.warn("No active report to save.");
+      toast.warning("No active report to save."); // Changed from toast.warn to toast.warning
     }
     // dispatch({ type: "SAVE_CANVAS" }); // This action is now mostly a signal
   };
