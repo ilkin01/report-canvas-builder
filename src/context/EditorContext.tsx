@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from "react";
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
 import { CanvasState, ElementData, Page, ReportDocument, Template } from "@/types/editor";
 import { v4 as uuidv4 } from "uuid";
 import { getTemplateById, systemTemplates } from "@/lib/templates";
@@ -348,14 +348,48 @@ const editorReducer = (
         // Deep copy pages to prevent direct mutation of Redux state if report object is passed by reference
         const reportPages = JSON.parse(JSON.stringify(report.pages));
         
+        // Check if we are already displaying this report's version of pages.
+        // This is critical to break update loops.
+        if (state.activeReportId === report.id && 
+            JSON.stringify(state.canvasState.pages) === JSON.stringify(reportPages)) {
+          console.log(`EditorContext: LOAD_REPORT_DATA for report ${report.id}. Pages are already current. Canvas state will not change.`);
+          
+          // Still update openReports cache if the report object itself has changed (e.g. name, updatedAt)
+          // This prevents stale data in getActiveReport() if only metadata changed.
+          const existingReportIndex = state.openReports.findIndex(r => r.id === report.id);
+          let reportNeedsUpdateInCache = true;
+          if (existingReportIndex > -1) {
+            // Compare the full report object from payload with the one in cache
+             if (JSON.stringify(state.openReports[existingReportIndex]) === JSON.stringify(report)) {
+                reportNeedsUpdateInCache = false;
+             }
+          }
+
+          if (reportNeedsUpdateInCache) {
+            console.log(`EditorContext: LOAD_REPORT_DATA for report ${report.id}. Updating openReports cache only.`);
+            let updatedOpenReports;
+            if (existingReportIndex > -1) {
+              updatedOpenReports = [...state.openReports];
+              // Ensure we are storing a deep copy of the report in our cache as well
+              updatedOpenReports[existingReportIndex] = JSON.parse(JSON.stringify(report));
+            } else {
+              // This case (report not in cache but pages match current canvas for same ID) is unlikely but handle it.
+              updatedOpenReports = [...state.openReports, JSON.parse(JSON.stringify(report))];
+            }
+            return { ...state, openReports: updatedOpenReports };
+          }
+          return state; // No change needed to canvasState or openReports if everything matches
+        }
+        
+        console.log(`EditorContext: LOAD_REPORT_DATA for report ${report.id}. Updating canvasState and openReports cache.`);
         // Update openReports cache in context
         const existingReportIndex = state.openReports.findIndex(r => r.id === report.id);
         let updatedOpenReports;
         if (existingReportIndex > -1) {
           updatedOpenReports = [...state.openReports];
-          updatedOpenReports[existingReportIndex] = { ...report, pages: reportPages }; // Store with copied pages
+          updatedOpenReports[existingReportIndex] = JSON.parse(JSON.stringify(report)); // Store with copied pages
         } else {
-          updatedOpenReports = [...state.openReports, { ...report, pages: reportPages }];
+          updatedOpenReports = [...state.openReports, JSON.parse(JSON.stringify(report))];
         }
         
         return {
@@ -363,21 +397,21 @@ const editorReducer = (
           activeReportId: report.id,
           canvasState: {
             pages: reportPages,
-            currentPageIndex: 0,
+            currentPageIndex: 0, // Reset to first page when loading new report data
             selectedElementIds: [],
-            history: { past: [], future: [] },
+            history: { past: [], future: [] }, // Reset history for the new/updated report content
           },
           openReports: updatedOpenReports,
         };
       } else {
         // report is null, so clear active report in context
+        console.log("EditorContext: LOAD_REPORT_DATA with null report. Clearing active report and canvas state.");
         return {
           ...state,
           activeReportId: null,
           canvasState: initialCanvasState,
-          // openReports could be cleared or left as is. If cleared, getActiveReport will always be null.
-          // Let's not clear openReports entirely, so if user navigates back to an old report, it *might* still be there.
-          // However, LOAD_REPORT_DATA should be the sole source for loading a report.
+          // openReports: [], // Optionally clear openReports, or leave as is.
+                           // Let's clear if no report is active to reflect a truly empty editor.
         };
       }
     }
@@ -438,7 +472,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
              reportId: state.activeReportId,
              pages: JSON.parse(JSON.stringify(state.canvasState.pages))
            }));
-           toast.success("Report auto-saved to Redux (simulated)");
+           toast.success("Report auto-saved to Redux");
         }
 
       }
@@ -492,13 +526,14 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const saveCanvas = () => { // Explicit save action
     if (state.activeReportId && state.canvasState.pages) {
+      console.log("EditorContext: saveCanvas dispatching updateReportPages.");
       reduxDispatch(updateReportPages({
         reportId: state.activeReportId,
         pages: JSON.parse(JSON.stringify(state.canvasState.pages))
       }));
-      toast.success("Report changes saved to Redux (simulated)");
+      toast.success("Report changes saved"); // Removed "(simulated)"
     } else {
-      toast.warning("No active report to save."); // Changed from toast.warn to toast.warning
+      toast.warning("No active report to save.");
     }
     // dispatch({ type: "SAVE_CANVAS" }); // This action is now mostly a signal
   };
@@ -509,15 +544,15 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // createReport and closeReport are handled by Redux and App-level logic
   // The EditorContext is informed via setActiveReport.
   
-  const setActiveReport = (report: ReportDocument | null) => {
+  const setActiveReport = useCallback((report: ReportDocument | null) => {
+    console.log("EditorContext: public setActiveReport called via context with report:", report ? report.name : 'null');
     dispatch({ type: "LOAD_REPORT_DATA", payload: { report } });
-  };
+  }, []); // dispatch is stable, so empty dependency array is fine.
   
-  const getActiveReport = (): ReportDocument | null => {
-    // This gets the version of the report currently cached/worked on within the EditorContext
+  const getActiveReport = useCallback((): ReportDocument | null => {
     if (!state.activeReportId) return null;
     return state.openReports.find(report => report.id === state.activeReportId) || null;
-  };
+  }, [state.activeReportId, state.openReports]); // Dependencies for getActiveReport
 
   const addPage = (name: string = `Page ${state.canvasState.pages.length + 1}`) => {
     if (!state.activeReportId) {
@@ -551,8 +586,6 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     <EditorContext.Provider
       value={{
         canvasState: state.canvasState,
-        // openReports: state.openReports, // Not directly exposed if Redux is truth
-        // activeReportId: state.activeReportId, // Not directly exposed
         dispatch,
         addElement,
         updateElement,
