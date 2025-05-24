@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { useEditor } from "@/context/EditorContext";
 import { CanvasElement } from "./elements/CanvasElement";
@@ -8,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { 
   setActiveReport as setReduxActiveReport, 
-  closeReport as reduxCloseReport, // closeReport eklendi
-  closeAllReports as reduxCloseAllReports, // closeAllReports eklendi
-  // deleteExistingReport, // Bu thunk'ı doğrudan burada kullanmayacağız, Redux halledecek
+  closeReport as reduxCloseReport,
+  closeAllReports as reduxCloseAllReports,
 } from "@/redux/slices/reportsSlice";
 import { toast } from "sonner";
-import { ReportDocument } from "@/types/editor"; // ReportDocument'ı buradan alıyoruz
+// ReportDocument type is already imported via useEditor types, but explicitly having it here is fine if needed elsewhere.
+// import { ReportDocument } from "@/types/editor"; 
 
 interface EditorCanvasProps {
   onClose?: () => void;
@@ -26,15 +25,14 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   const { 
     canvasState, 
     clearSelection,
-    setActiveReport: editorSetActiveReport // Bu, EditorContext'in setActiveReport'u
+    setActiveReport: editorSetActiveReport, // This is EditorContext's setActiveReport
+    getActiveReport // Destructure getActiveReport
   } = useEditor();
   
   const dispatch = useAppDispatch();
-  // openedReportIds'i Redux store'dan alıyoruz
   const { reports, activeReportId, openedReportIds } = useAppSelector(state => state.reports);
   
   const canvasRef = useRef<HTMLDivElement>(null);
-  // const [canvasSize] = useState({ width: 800, height: 1100 }); // Kaldırıldı, dinamik olacak
   
   const currentPage = activeReportId ? canvasState.pages[canvasState.currentPageIndex] : null;
 
@@ -43,21 +41,29 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
     if (activeReportId && reports.length > 0) {
       const reportFromRedux = reports.find(r => r.id === activeReportId);
       if (reportFromRedux) {
-        // Sadece gerçekten farklıysa veya context'te aktif rapor yoksa güncelle
-        const currentEditorReport = editorSetActiveReport.length === 0 ? null : (useEditor().getActiveReport && useEditor().getActiveReport()); // getActiveReport'un varlığını kontrol et
-        if (!currentEditorReport || currentEditorReport.id !== reportFromRedux.id || JSON.stringify(currentEditorReport.pages) !== JSON.stringify(reportFromRedux.pages)) {
+        const currentEditorReport = getActiveReport(); // Use destructured getActiveReport
+        // Sync if there's no report in context, or if the report ID or pages differ
+        if (!currentEditorReport || currentEditorReport.id !== reportFromRedux.id || 
+            JSON.stringify(currentEditorReport.pages) !== JSON.stringify(reportFromRedux.pages)) {
           console.log("EditorCanvas: Syncing Redux active report to EditorContext:", reportFromRedux.name);
           editorSetActiveReport(reportFromRedux);
         }
       } else {
-        // console.log("EditorCanvas: Active report ID from Redux not found in reports list. Clearing context.");
-        editorSetActiveReport(null); // Aktif ID var ama rapor yoksa context'i temizle
+        // Active report ID exists in Redux store, but the report itself isn't found in the `reports` list.
+        // This might happen if `reports` list is not up-to-date. Clear context if it has a different report.
+        if (getActiveReport()) { // Check if context has any active report
+           console.log("EditorCanvas: Active report ID from Redux not found in reports list. Clearing context.");
+           editorSetActiveReport(null);
+        }
       }
     } else if (!activeReportId) {
-      // console.log("EditorCanvas: No active report ID in Redux. Clearing context.");
-      editorSetActiveReport(null); // Aktif ID yoksa context'i temizle
+      // No active report ID in Redux. Clear context if it has an active report.
+      if (getActiveReport()) {
+        console.log("EditorCanvas: No active report ID in Redux. Clearing context.");
+        editorSetActiveReport(null);
+      }
     }
-  }, [activeReportId, reports, editorSetActiveReport, useEditor]); // useEditor'ı bağımlılıklara ekledik
+  }, [activeReportId, reports, editorSetActiveReport, getActiveReport]); // Updated dependencies
   
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

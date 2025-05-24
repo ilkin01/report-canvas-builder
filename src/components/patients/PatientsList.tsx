@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { fetchAllReports, fetchReportById, viewReport } from "@/redux/slices/reportsSlice";
 import { toast } from "sonner";
+import { ReportDocument } from "@/types/editor";
 
 interface PatientsListProps {
   onReportSelect?: () => void;
@@ -14,10 +15,9 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
   const dispatch = useAppDispatch();
   const { reports, loading, error } = useAppSelector(state => state.reports);
 
-  useEffect(() => {
-    // dispatch(fetchAllReports()); // Bu, Index.tsx'de zaten çağrılıyor olabilir. Tekrar çağırmak yerine oraya güvenebiliriz.
-                               // Eğer Index.tsx'de yoksa veya burada özel bir ihtiyaç varsa açılabilir.
-  }, [dispatch]);
+  // useEffect(() => { // Commented out as it might be redundant if called in Index.tsx
+  //   // dispatch(fetchAllReports()); 
+  // }, [dispatch]);
 
   // Function to get a short excerpt from the report content
   const getDocumentExcerpt = (report: ReportDocument) => {
@@ -39,7 +39,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
   const handleReportClick = async (reportId: string) => {
     try {
       await dispatch(fetchReportById(reportId)).unwrap(); // Raporun tam verisini çek
-      dispatch(viewReport(reportId)); // Raporu "görüntülenen" olarak ayarla (diğer sekmeleri temizler)
+      dispatch(viewReport(reportId)); // Raporu "görüntülenen" olarak ayarla (sadece bu rapor açık olacak)
       
       if (onReportSelect) {
         onReportSelect();
