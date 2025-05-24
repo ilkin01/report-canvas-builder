@@ -1,8 +1,9 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import { useEditor } from "@/context/EditorContext";
 import { CanvasElement } from "./elements/CanvasElement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, ArrowLeft } from "lucide-react";
+import { X, ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { 
@@ -11,8 +12,7 @@ import {
   closeAllReports as reduxCloseAllReports,
 } from "@/redux/slices/reportsSlice";
 import { toast } from "sonner";
-// ReportDocument type is already imported via useEditor types, but explicitly having it here is fine if needed elsewhere.
-// import { ReportDocument } from "@/types/editor"; 
+import { PageControls } from "./PageControls";
 
 interface EditorCanvasProps {
   onClose?: () => void;
@@ -25,8 +25,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   const { 
     canvasState, 
     clearSelection,
-    setActiveReport: editorSetActiveReport, // This is EditorContext's setActiveReport
-    getActiveReport // Destructure getActiveReport
+    setActiveReport: editorSetActiveReport,
+    getActiveReport
   } = useEditor();
   
   const dispatch = useAppDispatch();
@@ -41,7 +41,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
     if (activeReportId && reports.length > 0) {
       const reportFromRedux = reports.find(r => r.id === activeReportId);
       if (reportFromRedux) {
-        const currentEditorReport = getActiveReport(); // Use destructured getActiveReport
+        const currentEditorReport = getActiveReport();
         // Sync if there's no report in context, or if the report ID or pages differ
         if (!currentEditorReport || currentEditorReport.id !== reportFromRedux.id || 
             JSON.stringify(currentEditorReport.pages) !== JSON.stringify(reportFromRedux.pages)) {
@@ -51,7 +51,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
       } else {
         // Active report ID exists in Redux store, but the report itself isn't found in the `reports` list.
         // This might happen if `reports` list is not up-to-date. Clear context if it has a different report.
-        if (getActiveReport()) { // Check if context has any active report
+        if (getActiveReport()) {
            console.log("EditorCanvas: Active report ID from Redux not found in reports list. Clearing context.");
            editorSetActiveReport(null);
         }
@@ -63,7 +63,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
         editorSetActiveReport(null);
       }
     }
-  }, [activeReportId, reports, editorSetActiveReport, getActiveReport]); // Updated dependencies
+  }, [activeReportId, reports, editorSetActiveReport, getActiveReport]);
   
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -108,8 +108,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   // Eğer hiç açık rapor kalmazsa ve onClose varsa, liste görünümüne dön
   useEffect(() => {
     if (onClose && activeReportId === null && openedReportIds && openedReportIds.length === 0) {
-      // Bu effect, EditorCanvas'ın render edildiği (isEditing=true) durumda çalışır.
-      // activeReportId null ve openedReportIds boş ise, liste görünümüne dönülmeli.
       console.log("EditorCanvas: No open reports left. Calling onClose to go back to list.");
       onClose();
     }
@@ -117,6 +115,15 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
 
   const currentCanvasWidth = currentPage?.width || DEFAULT_CANVAS_WIDTH;
   const currentCanvasHeight = currentPage?.height || DEFAULT_CANVAS_HEIGHT;
+
+  // Sayfayı manuel ekleme işlevi
+  const handleAddPage = () => {
+    if (canvasState && canvasState.pages) {
+      const { addPage } = useEditor();
+      addPage(`Page ${canvasState.pages.length + 1}`);
+      toast.success(`Added new page: Page ${canvasState.pages.length + 1}`);
+    }
+  };
 
   return (
     <div className="flex-1 h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
@@ -127,7 +134,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
           className="flex flex-col h-full"
         >
           <div className="border-b bg-gray-50 flex items-center">
-            {onClose && ( // "Back to List" butonu her zaman görünür olmalı (eğer onClose varsa)
+            {onClose && (
               <Button 
                 variant="ghost" 
                 onClick={handleBackToList} 
@@ -163,13 +170,18 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
             <TabsContent 
               key={reportTabInfo.id} 
               value={reportTabInfo.id} 
-              className="flex-1 overflow-auto p-6 bg-gray-100 m-0"
+              className="flex-1 overflow-auto p-6 bg-gray-100 m-0 flex flex-col"
             >
+              {/* Sayfa kontrollerini ekle */}
+              {reportTabInfo.id === activeReportId && (
+                <PageControls />
+              )}
+
               {/* Sadece aktif sekmenin içeriğini render et */}
               {reportTabInfo.id === activeReportId && currentPage && (
                 <div
                   ref={canvasRef}
-                  className="canvas-container relative mx-auto shadow-lg"
+                  className="canvas-container relative mx-auto shadow-lg mt-4"
                   style={{
                     width: `${currentCanvasWidth}px`,
                     height: `${currentCanvasHeight}px`,
@@ -196,7 +208,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
             <p className="text-gray-600 mb-6">
               No report is currently open. Start by creating a new report or opening an existing one from the list.
             </p>
-            {onClose && ( // "Back to List" butonu burada da olmalı
+            {onClose && (
               <Button 
                 onClick={handleBackToList} 
               >
