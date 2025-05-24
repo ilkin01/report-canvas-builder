@@ -1,11 +1,13 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
-import { CanvasState, ElementData, Page, ReportDocument, Template } from "@/types/editor";
-import { v4 as uuidv4 } from "uuid";
-import { getTemplateById, systemTemplates } from "@/lib/templates";
-import { toast } from "sonner";
-import { useAppDispatch } from "@/redux/hooks"; // Import useAppDispatch
-import { updateReportPages } from "@/redux/slices/reportsSlice"; // Import Redux action
 
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
+import { CanvasState, ElementData, Page, ReportDocument } from "@/types/editor";
+import { v4 as uuidv4 } from "uuid";
+import { getTemplateById } from "@/lib/templates";
+import { toast } from "sonner";
+import { useAppDispatch } from "@/redux/hooks";
+import { updateReportPages } from "@/redux/slices/reportsSlice";
+
+// A4 dimensions (in pixels at 72 DPI)
 const A4_WIDTH_PX = 595;
 const A4_HEIGHT_PX = 842;
 
@@ -52,8 +54,8 @@ const initialCanvasState: CanvasState = {
       id: uuidv4(),
       name: "Page 1",
       elements: [],
-      width: A4_WIDTH_PX, // Use A4 default
-      height: A4_HEIGHT_PX // Use A4 default
+      width: A4_WIDTH_PX,
+      height: A4_HEIGHT_PX
     }
   ],
   currentPageIndex: 0,
@@ -478,7 +480,6 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [state.canvasState.pages, state.activeReportId, state.openReports, reduxDispatch]);
 
-
   useEffect(() => {
     const autoSaveInterval = setInterval(() => {
       if (state.activeReportId && state.canvasState.pages.length > 0) { 
@@ -520,7 +521,6 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     dispatch({ type: "DELETE_ELEMENT", payload: { id, pageIndex } });
-    toast.success("Element deleted");
   }, [state.activeReportId]);
 
   const selectElement = useCallback((id: string) => {
@@ -562,18 +562,18 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return state.openReports.find(report => report.id === state.activeReportId) || null;
   }, [state.activeReportId, state.openReports]);
 
-  const addPage = useCallback((name?: string) => {
+  const addPage = useCallback((name: string) => {
     if (!state.activeReportId) {
       toast.error("Please select a report to add a page.");
       return;
     }
-    const newPageName = name || `Page ${state.canvasState.pages.length + 1}`;
-    dispatch({ type: "ADD_PAGE", payload: { name: newPageName } });
-    toast.success(`Added new page: ${newPageName}`);
+    const pageName = name || `Page ${state.canvasState.pages.length + 1}`;
+    dispatch({ type: "ADD_PAGE", payload: { name: pageName } });
+    console.log(`Adding new page: ${pageName}`);
   }, [state.activeReportId, state.canvasState.pages.length]);
 
   const removePage = useCallback((pageIndex: number) => {
-     if (!state.activeReportId) {
+    if (!state.activeReportId) {
       toast.error("Please select a report to remove a page.");
       return;
     }

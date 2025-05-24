@@ -18,9 +18,9 @@ interface EditorCanvasProps {
   onClose?: () => void;
 }
 
-// A4 boyutları (72 DPI'de piksel cinsinden)
-const DEFAULT_CANVAS_WIDTH = 595;  // A4 genişliği
-const DEFAULT_CANVAS_HEIGHT = 842; // A4 yüksekliği
+// A4 dimensions (in pixels at 72 DPI)
+const DEFAULT_CANVAS_WIDTH = 595;  // A4 width
+const DEFAULT_CANVAS_HEIGHT = 842; // A4 height
 
 export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   const { 
@@ -37,7 +37,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   
   const currentPage = activeReportId ? canvasState.pages[canvasState.currentPageIndex] : null;
 
-  // Redux'taki aktif raporu EditorContext ile senkronize et
+  // Sync active report from Redux to EditorContext
   useEffect(() => {
     if (activeReportId && reports.length > 0) {
       const reportFromRedux = reports.find(r => r.id === activeReportId);
@@ -82,31 +82,29 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
     };
   }, [clearSelection]);
 
-  // Sekme kapatma işlemi
+  // Close tab handler
   const handleCloseTab = (e: React.MouseEvent, reportIdToClose: string) => {
     e.stopPropagation();
     dispatch(reduxCloseReport(reportIdToClose));
     toast.success("Report closed");
-    // Eğer kapatılan rapor son raporsa ve onClose varsa, useEffect tetikleyecek
   };
 
-  // Liste görünümüne dönme
+  // Back to list handler
   const handleBackToList = () => {
     dispatch(reduxCloseAllReports()); 
-    // onClose çağrısı aşağıdaki useEffect tarafından yönetilecek
   };
 
-  // Aktif sekmeyi değiştirme
+  // Change active tab handler
   const handleTabChange = (newActiveReportId: string) => {
     dispatch(setReduxActiveReport(newActiveReportId));
   };
 
-  // Filtrelenmiş rapor listesi (sadece açık olanlar)
+  // Filtered report list (only open ones)
   const reportsForTabs = React.useMemo(() => {
     return reports.filter(report => openedReportIds.includes(report.id));
   }, [reports, openedReportIds]);
 
-  // Eğer hiç açık rapor kalmazsa ve onClose varsa, liste görünümüne dön
+  // If no reports are left open and onClose exists, go back to list view
   useEffect(() => {
     if (onClose && activeReportId === null && openedReportIds && openedReportIds.length === 0) {
       console.log("EditorCanvas: No open reports left. Calling onClose to go back to list.");
@@ -114,6 +112,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
     }
   }, [activeReportId, openedReportIds, onClose]);
 
+  // Get current canvas dimensions (default to A4 if not specified)
   const currentCanvasWidth = currentPage?.width || DEFAULT_CANVAS_WIDTH;
   const currentCanvasHeight = currentPage?.height || DEFAULT_CANVAS_HEIGHT;
 
@@ -164,30 +163,32 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
               value={reportTabInfo.id} 
               className="flex-1 overflow-auto p-6 bg-gray-100 m-0 flex flex-col"
             >
-              {/* Sayfa kontrollerini ekle */}
+              {/* Page controls */}
               {reportTabInfo.id === activeReportId && (
                 <PageControls />
               )}
 
-              {/* Sadece aktif sekmenin içeriğini render et */}
+              {/* Only render active tab content */}
               {reportTabInfo.id === activeReportId && currentPage && (
-                <div
-                  ref={canvasRef}
-                  className="canvas-container relative mx-auto shadow-lg mt-4"
-                  style={{
-                    width: `${currentCanvasWidth}px`,
-                    height: `${currentCanvasHeight}px`,
-                    backgroundColor: "white",
-                  }}
-                  onClick={(e) => {
-                    if (e.currentTarget === e.target) {
-                      clearSelection();
-                    }
-                  }}
-                >
-                  {currentPage.elements && currentPage.elements.map((element) => (
-                    <CanvasElement key={element.id} element={element} />
-                  ))}
+                <div className="flex justify-center mt-4 flex-1">
+                  <div
+                    ref={canvasRef}
+                    className="canvas-container relative shadow-lg bg-white"
+                    style={{
+                      width: `${currentCanvasWidth}px`,
+                      height: `${currentCanvasHeight}px`,
+                      backgroundColor: "white",
+                    }}
+                    onClick={(e) => {
+                      if (e.currentTarget === e.target) {
+                        clearSelection();
+                      }
+                    }}
+                  >
+                    {currentPage.elements && currentPage.elements.map((element) => (
+                      <CanvasElement key={element.id} element={element} />
+                    ))}
+                  </div>
                 </div>
               )}
             </TabsContent>

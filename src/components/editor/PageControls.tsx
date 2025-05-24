@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { Plus } from "lucide-react";
@@ -26,9 +27,8 @@ export const PageControls = () => {
   const { pages, currentPageIndex } = canvasState;
   
   const handleAddPage = useCallback(() => {
-    const pageName = `Page ${pages.length + 1}`;
-    addPage(pageName);
-  }, [pages, addPage]);
+    addPage(`Page ${pages.length + 1}`);
+  }, [pages.length, addPage]);
   
   const handlePageClick = (index: number) => {
     if (index !== currentPageIndex) {
