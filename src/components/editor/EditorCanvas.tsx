@@ -18,8 +18,9 @@ interface EditorCanvasProps {
   onClose?: () => void;
 }
 
-const DEFAULT_CANVAS_WIDTH = 800;
-const DEFAULT_CANVAS_HEIGHT = 1100;
+// A4 boyutları (72 DPI'de piksel cinsinden)
+const DEFAULT_CANVAS_WIDTH = 595;  // A4 genişliği
+const DEFAULT_CANVAS_HEIGHT = 842; // A4 yüksekliği
 
 export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
   const { 

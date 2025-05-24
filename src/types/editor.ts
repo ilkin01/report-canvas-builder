@@ -80,6 +80,7 @@ export type Page = {
   elements: ElementData[];
   width?: number; // Sayfa genişliği (opsiyonel)
   height?: number; // Sayfa yüksekliği (opsiyonel)
+  appointmentId?: string; // Randevu ID'sini ekledik
 };
 
 export interface CanvasState {
@@ -104,6 +105,8 @@ export type ReportDocument = {
   id: string;
   name: string;
   templateId: string;
+  patientId?: string; // Hasta ID'sini ekledik
+  appointmentId?: string; // Randevu ID'sini ekledik
   pages: Page[];
   createdAt: string;
   updatedAt: string;

@@ -1,3 +1,4 @@
+
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ReportDocument, Page } from '@/types/editor';
 import { reportsApi } from '../api';
@@ -48,9 +49,19 @@ export const fetchReportById = createAsyncThunk(
 
 export const createNewReport = createAsyncThunk(
   'reports/create',
-  async ({ name, templateId }: { name: string; templateId: string }, { rejectWithValue }) => {
+  async ({ 
+    name, 
+    templateId, 
+    patientId, 
+    appointmentId 
+  }: { 
+    name: string; 
+    templateId: string; 
+    patientId?: string; 
+    appointmentId?: string 
+  }, { rejectWithValue }) => {
     try {
-      const newReport = await reportsApi.createReport(name, templateId);
+      const newReport = await reportsApi.createReport(name, templateId, patientId, appointmentId);
       toast.success(`Created report: ${name}`);
       return newReport;
     } catch (error) {
@@ -135,6 +146,19 @@ const reportsSlice = createSlice({
       state.activeReportId = null;
       // openedReportIds'i de temizlemek mantıklı olabilir:
       // state.openedReportIds = []; 
+    },
+    updateReportPatientInfo(state, action: PayloadAction<{ 
+      reportId: string; 
+      patientId?: string; 
+      appointmentId?: string 
+    }>) {
+      const { reportId, patientId, appointmentId } = action.payload;
+      const report = state.reports.find(r => r.id === reportId);
+      if (report) {
+        if (patientId) report.patientId = patientId;
+        if (appointmentId) report.appointmentId = appointmentId;
+        report.updatedAt = new Date().toISOString();
+      }
     }
   },
   extraReducers: (builder) => {
@@ -243,7 +267,8 @@ export const {
   clearActiveReport,
   viewReport,
   closeReport,
-  closeAllReports
+  closeAllReports,
+  updateReportPatientInfo
 } = reportsSlice.actions;
 
 export default reportsSlice.reducer;

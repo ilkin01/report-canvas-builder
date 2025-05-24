@@ -11,7 +11,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 
 export const PageControls = () => {
@@ -28,11 +28,12 @@ export const PageControls = () => {
   
   const { pages, currentPageIndex } = canvasState;
   
-  const handleAddPage = () => {
+  // useCallback ile handleAddPage fonksiyonunu sarmalayalım
+  const handleAddPage = useCallback(() => {
     const pageName = `Page ${pages.length + 1}`;
     addPage(pageName);
     toast.success(`Added new page: ${pageName}`);
-  };
+  }, [pages, addPage]);
   
   const handlePageClick = (index: number) => {
     if (index !== currentPageIndex) {
