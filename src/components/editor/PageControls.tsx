@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { Plus } from "lucide-react";
@@ -12,13 +11,11 @@ import {
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 
 export const PageControls = () => {
   const { 
     canvasState, 
     addPage, 
-    removePage, 
     setCurrentPage, 
     renamePage 
   } = useEditor();
@@ -28,11 +25,9 @@ export const PageControls = () => {
   
   const { pages, currentPageIndex } = canvasState;
   
-  // useCallback ile handleAddPage fonksiyonunu sarmalayalım
   const handleAddPage = useCallback(() => {
     const pageName = `Page ${pages.length + 1}`;
     addPage(pageName);
-    toast.success(`Added new page: ${pageName}`);
   }, [pages, addPage]);
   
   const handlePageClick = (index: number) => {
@@ -55,12 +50,10 @@ export const PageControls = () => {
   };
   
   const renderPaginationItems = () => {
-    // Show 5 pages max with current page in the middle if possible
     const maxVisiblePages = 5;
     let startPage = Math.max(0, currentPageIndex - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(pages.length - 1, startPage + maxVisiblePages - 1);
     
-    // Adjust start if end is maxed out
     startPage = Math.max(0, endPage - maxVisiblePages + 1);
     
     const items = [];
