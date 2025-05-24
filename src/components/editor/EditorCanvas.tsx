@@ -1,9 +1,9 @@
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { useEditor } from "@/context/EditorContext";
 import { CanvasElement } from "./elements/CanvasElement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, ArrowLeft, Plus } from "lucide-react";
+import { X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { 
@@ -115,15 +115,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
 
   const currentCanvasWidth = currentPage?.width || DEFAULT_CANVAS_WIDTH;
   const currentCanvasHeight = currentPage?.height || DEFAULT_CANVAS_HEIGHT;
-
-  // Sayfayı manuel ekleme işlevi
-  const handleAddPage = () => {
-    if (canvasState && canvasState.pages) {
-      const { addPage } = useEditor();
-      addPage(`Page ${canvasState.pages.length + 1}`);
-      toast.success(`Added new page: Page ${canvasState.pages.length + 1}`);
-    }
-  };
 
   return (
     <div className="flex-1 h-[calc(100vh-4rem)] overflow-hidden flex flex-col">

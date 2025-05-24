@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -29,8 +29,9 @@ export const PageControls = () => {
   const { pages, currentPageIndex } = canvasState;
   
   const handleAddPage = () => {
-    addPage(`Page ${pages.length + 1}`);
-    toast.success(`Added new page: Page ${pages.length + 1}`);
+    const pageName = `Page ${pages.length + 1}`;
+    addPage(pageName);
+    toast.success(`Added new page: ${pageName}`);
   };
   
   const handlePageClick = (index: number) => {
