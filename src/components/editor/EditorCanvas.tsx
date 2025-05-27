@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from "react";
 import { useEditor } from "@/context/EditorContext";
 import { CanvasElement } from "./elements/CanvasElement";
@@ -39,28 +38,36 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
 
   // Sync active report from Redux to EditorContext
   useEffect(() => {
-    if (activeReportId && reports.length > 0) {
+    const currentEditorReport = getActiveReport(); // Get current report from EditorContext
+
+    if (activeReportId && reports.length > 0) { // Redux has an active report and reports list
       const reportFromRedux = reports.find(r => r.id === activeReportId);
+
       if (reportFromRedux) {
-        const currentEditorReport = getActiveReport();
-        // Sync if there's no report in context, or if the report ID or pages differ
-        if (!currentEditorReport || currentEditorReport.id !== reportFromRedux.id || 
-            JSON.stringify(currentEditorReport.pages) !== JSON.stringify(reportFromRedux.pages)) {
-          console.log("EditorCanvas: Syncing Redux active report to EditorContext:", reportFromRedux.name);
+        // Case 1: Context has no active report, or its active report ID differs from Redux's.
+        // This means we need to load the report specified by Redux into the context.
+        if (!currentEditorReport || currentEditorReport.id !== reportFromRedux.id) {
+          console.log(`EditorCanvas: Syncing. Reason: Context empty or different ID. Redux active: ${reportFromRedux.name}, Context active: ${currentEditorReport ? currentEditorReport.name : 'None'}.`);
           editorSetActiveReport(reportFromRedux);
         }
+        // Case 2: Context and Redux agree on the active report ID.
+        // In this scenario, EditorContext is considered the source of truth for its page data.
+        // Changes flow from EditorContext -> Redux.
+        // We don't want Redux (which might be momentarily stale) to overwrite fresh context changes.
+        // So, no action needed here if IDs match. EditorContext handles its own state.
+
       } else {
-        // Active report ID exists in Redux store, but the report itself isn't found in the `reports` list.
-        // This might happen if `reports` list is not up-to-date. Clear context if it has a different report.
-        if (getActiveReport()) {
-           console.log("EditorCanvas: Active report ID from Redux not found in reports list. Clearing context.");
-           editorSetActiveReport(null);
+        // Redux's activeReportId points to a report not in Redux's reports list.
+        // This is an inconsistent state. If context still thinks it has a report, clear it.
+        if (currentEditorReport) {
+          console.log("EditorCanvas: Syncing. Reason: Redux active ID not in Redux reports list. Clearing context.");
+          editorSetActiveReport(null);
         }
       }
-    } else if (!activeReportId) {
-      // No active report ID in Redux. Clear context if it has an active report.
-      if (getActiveReport()) {
-        console.log("EditorCanvas: No active report ID in Redux. Clearing context.");
+    } else if (!activeReportId) { // Redux has no active report
+      // If context still has an active report, clear it to match Redux.
+      if (currentEditorReport) {
+        console.log("EditorCanvas: Syncing. Reason: Redux has no active report. Clearing context.");
         editorSetActiveReport(null);
       }
     }
@@ -111,8 +118,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ onClose }) => {
       onClose();
     }
   }, [activeReportId, openedReportIds, onClose]);
-
-  // Get current canvas dimensions (default to A4 if not specified)
+  
   const currentCanvasWidth = currentPage?.width || DEFAULT_CANVAS_WIDTH;
   const currentCanvasHeight = currentPage?.height || DEFAULT_CANVAS_HEIGHT;
 
