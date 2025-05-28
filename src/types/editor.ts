@@ -62,9 +62,11 @@ export type SignatureData = {
 
 export type CellStatus = 'normal' | 'positive' | 'negative' | 'warning' | 'active';
 
+export type ColumnType = 'string' | 'boolean' | 'number';
+
 export type TableData = {
   headers: string[];
-  rows: Array<Array<string | number>>;
+  rows: Array<Array<string | number | boolean>>;
   title?: string;
   headerBgColor?: string;
   highlightColor?: string;
@@ -72,15 +74,16 @@ export type TableData = {
   cellStatus?: Array<Array<CellStatus>>;
   referenceRanges?: string[];
   units?: string[];
+  columnTypes?: ColumnType[];
 };
 
 export type Page = {
   id: string;
   name: string;
   elements: ElementData[];
-  width?: number; // Sayfa genişliği (opsiyonel)
-  height?: number; // Sayfa yüksekliği (opsiyonel)
-  appointmentId?: string; // Randevu ID'sini ekledik
+  width?: number;
+  height?: number;
+  appointmentId?: string;
 };
 
 export interface CanvasState {
@@ -88,8 +91,8 @@ export interface CanvasState {
   currentPageIndex: number;
   selectedElementIds: string[];
   history: {
-    past: Page[][]; // History now stores arrays of Page arrays
-    future: Page[][]; // History now stores arrays of Page arrays
+    past: Page[][];
+    future: Page[][];
   };
 }
 
@@ -105,8 +108,8 @@ export type ReportDocument = {
   id: string;
   name: string;
   templateId: string;
-  patientId?: string; // Hasta ID'sini ekledik
-  appointmentId?: string; // Randevu ID'sini ekledik
+  patientId?: string;
+  appointmentId?: string;
   pages: Page[];
   createdAt: string;
   updatedAt: string;

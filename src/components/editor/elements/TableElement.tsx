@@ -11,18 +11,32 @@ import {
   TableHead,
   TableCell
 } from "@/components/ui/table";
-import { Check, AlertTriangle, X } from "lucide-react";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Check, X, Plus, Minus, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface TableElementProps {
   element: ElementData;
 }
 
+type ColumnType = 'string' | 'boolean' | 'number';
+
 export const TableElement: React.FC<TableElementProps> = ({ element }) => {
   const { content, isSelected } = element;
-  const { headers = [], rows = [] } = content;
+  const { headers = [], rows = [], columnTypes = [] } = content;
   const { updateElement } = useEditor();
+  
   const [localHeaders, setLocalHeaders] = useState<string[]>(headers);
-  const [localRows, setLocalRows] = useState<Array<Array<string | number>>>(rows);
+  const [localRows, setLocalRows] = useState<Array<Array<string | number | boolean>>>(rows);
+  const [localColumnTypes, setLocalColumnTypes] = useState<ColumnType[]>(
+    columnTypes.length > 0 ? columnTypes : Array(headers.length).fill('string')
+  );
   const [rowHighlights, setRowHighlights] = useState<boolean[]>(Array(rows.length).fill(false));
   const [cellStatus, setCellStatus] = useState<Array<Array<'normal' | 'positive' | 'negative' | 'warning' | 'active'>>>(
     Array(rows.length).fill(0).map(() => Array(headers.length).fill('normal'))
@@ -32,46 +46,76 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
   useEffect(() => {
     setLocalHeaders(headers);
     setLocalRows(rows);
+    setLocalColumnTypes(columnTypes.length > 0 ? columnTypes : Array(headers.length).fill('string'));
     
-    // Initialize highlights based on content
     if (content.rowHighlights && Array.isArray(content.rowHighlights)) {
       setRowHighlights(content.rowHighlights);
     } else {
       setRowHighlights(Array(rows.length).fill(false));
     }
 
-    // Initialize cell status based on content
     if (content.cellStatus && Array.isArray(content.cellStatus)) {
       setCellStatus(content.cellStatus);
     } else {
       setCellStatus(Array(rows.length).fill(0).map(() => Array(headers.length).fill('normal')));
     }
-  }, [headers, rows, content.rowHighlights, content.cellStatus]);
+  }, [headers, rows, content.rowHighlights, content.cellStatus, columnTypes]);
+
+  const updateTableData = (updates: any) => {
+    updateElement(element.id, {
+      content: {
+        ...element.content,
+        ...updates,
+      },
+    });
+  };
 
   const handleHeaderChange = (index: number, value: string) => {
     const newHeaders = [...localHeaders];
     newHeaders[index] = value;
     setLocalHeaders(newHeaders);
+    updateTableData({ headers: newHeaders });
+  };
+
+  const handleColumnTypeChange = (index: number, type: ColumnType) => {
+    const newColumnTypes = [...localColumnTypes];
+    newColumnTypes[index] = type;
+    setLocalColumnTypes(newColumnTypes);
     
-    updateElement(element.id, {
-      content: {
-        ...element.content,
-        headers: newHeaders,
-      },
+    // Convert existing data in this column to match the new type
+    const newRows = localRows.map(row => {
+      const newRow = [...row];
+      if (type === 'boolean') {
+        newRow[index] = newRow[index] === 'true' || newRow[index] === true;
+      } else if (type === 'number') {
+        newRow[index] = Number(newRow[index]) || 0;
+      } else {
+        newRow[index] = String(newRow[index]);
+      }
+      return newRow;
+    });
+    
+    setLocalRows(newRows);
+    updateTableData({ 
+      columnTypes: newColumnTypes,
+      rows: newRows 
     });
   };
 
-  const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
+  const handleCellChange = (rowIndex: number, colIndex: number, value: string | boolean) => {
     const newRows = [...localRows];
-    newRows[rowIndex][colIndex] = value;
-    setLocalRows(newRows);
+    const columnType = localColumnTypes[colIndex];
     
-    updateElement(element.id, {
-      content: {
-        ...element.content,
-        rows: newRows,
-      },
-    });
+    if (columnType === 'boolean') {
+      newRows[rowIndex][colIndex] = value as boolean;
+    } else if (columnType === 'number') {
+      newRows[rowIndex][colIndex] = Number(value) || 0;
+    } else {
+      newRows[rowIndex][colIndex] = value as string;
+    }
+    
+    setLocalRows(newRows);
+    updateTableData({ rows: newRows });
   };
 
   const handleToggleRowHighlight = (rowIndex: number) => {
@@ -80,13 +124,7 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
     const newHighlights = [...rowHighlights];
     newHighlights[rowIndex] = !newHighlights[rowIndex];
     setRowHighlights(newHighlights);
-    
-    updateElement(element.id, {
-      content: {
-        ...element.content,
-        rowHighlights: newHighlights,
-      },
-    });
+    updateTableData({ rowHighlights: newHighlights });
   };
 
   const cycleCellStatus = (rowIndex: number, colIndex: number, e: React.MouseEvent) => {
@@ -101,13 +139,7 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
     
     newCellStatus[rowIndex][colIndex] = statuses[nextStatusIndex];
     setCellStatus(newCellStatus);
-    
-    updateElement(element.id, {
-      content: {
-        ...element.content,
-        cellStatus: newCellStatus,
-      },
-    });
+    updateTableData({ cellStatus: newCellStatus });
   };
 
   const getCellStatusStyle = (status: 'normal' | 'positive' | 'negative' | 'warning' | 'active') => {
@@ -143,24 +175,45 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
   const addRow = () => {
     if (!isSelected) return;
     
-    const newRow = Array(localHeaders.length).fill("");
+    const newRow = localColumnTypes.map(type => {
+      switch(type) {
+        case 'boolean': return false;
+        case 'number': return 0;
+        default: return "";
+      }
+    });
+    
     const newRows = [...localRows, newRow];
     setLocalRows(newRows);
     
     const newHighlights = [...rowHighlights, false];
     setRowHighlights(newHighlights);
 
-    // Fixed this line to properly type the new cell status array
-    const newCellStatus = [...cellStatus, Array(localHeaders.length).fill('normal' as 'normal' | 'positive' | 'negative' | 'warning' | 'active')];
+    const newCellStatus = [...cellStatus, Array(localHeaders.length).fill('normal' as const)];
     setCellStatus(newCellStatus);
     
-    updateElement(element.id, {
-      content: {
-        ...element.content,
-        rows: newRows,
-        rowHighlights: newHighlights,
-        cellStatus: newCellStatus,
-      },
+    updateTableData({
+      rows: newRows,
+      rowHighlights: newHighlights,
+      cellStatus: newCellStatus,
+    });
+  };
+
+  const deleteRow = (rowIndex: number) => {
+    if (!isSelected || localRows.length <= 1) return;
+    
+    const newRows = localRows.filter((_, index) => index !== rowIndex);
+    const newHighlights = rowHighlights.filter((_, index) => index !== rowIndex);
+    const newCellStatus = cellStatus.filter((_, index) => index !== rowIndex);
+    
+    setLocalRows(newRows);
+    setRowHighlights(newHighlights);
+    setCellStatus(newCellStatus);
+    
+    updateTableData({
+      rows: newRows,
+      rowHighlights: newHighlights,
+      cellStatus: newCellStatus,
     });
   };
 
@@ -168,23 +221,109 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
     if (!isSelected) return;
     
     const newHeaders = [...localHeaders, "New Column"];
+    const newColumnTypes = [...localColumnTypes, 'string' as ColumnType];
     setLocalHeaders(newHeaders);
+    setLocalColumnTypes(newColumnTypes);
     
     const newRows = localRows.map(row => [...row, ""]);
     setLocalRows(newRows);
 
-    // Fixed this line to properly type the new cell status array
-    const newCellStatus = cellStatus.map(row => [...row, 'normal' as 'normal' | 'positive' | 'negative' | 'warning' | 'active']);
+    const newCellStatus = cellStatus.map(row => [...row, 'normal' as const]);
     setCellStatus(newCellStatus);
     
-    updateElement(element.id, {
-      content: {
-        ...element.content,
-        headers: newHeaders,
-        rows: newRows,
-        cellStatus: newCellStatus,
-      },
+    updateTableData({
+      headers: newHeaders,
+      columnTypes: newColumnTypes,
+      rows: newRows,
+      cellStatus: newCellStatus,
     });
+  };
+
+  const deleteColumn = (colIndex: number) => {
+    if (!isSelected || localHeaders.length <= 1) return;
+    
+    const newHeaders = localHeaders.filter((_, index) => index !== colIndex);
+    const newColumnTypes = localColumnTypes.filter((_, index) => index !== colIndex);
+    const newRows = localRows.map(row => row.filter((_, index) => index !== colIndex));
+    const newCellStatus = cellStatus.map(row => row.filter((_, index) => index !== colIndex));
+    
+    setLocalHeaders(newHeaders);
+    setLocalColumnTypes(newColumnTypes);
+    setLocalRows(newRows);
+    setCellStatus(newCellStatus);
+    
+    updateTableData({
+      headers: newHeaders,
+      columnTypes: newColumnTypes,
+      rows: newRows,
+      cellStatus: newCellStatus,
+    });
+  };
+
+  const renderCellContent = (value: any, rowIndex: number, colIndex: number) => {
+    const columnType = localColumnTypes[colIndex];
+    
+    if (!isSelected) {
+      if (columnType === 'boolean') {
+        return (
+          <div className="flex items-center justify-center">
+            {value ? <Check className="h-4 w-4 text-green-600" /> : 
+             value === false ? <X className="h-4 w-4 text-red-600" /> : 
+             <Minus className="h-4 w-4 text-gray-400" />}
+            {getCellStatusIcon(cellStatus[rowIndex]?.[colIndex] || 'normal')}
+          </div>
+        );
+      }
+      return (
+        <div className="p-1 text-sm">
+          {String(value)}
+          {getCellStatusIcon(cellStatus[rowIndex]?.[colIndex] || 'normal')}
+        </div>
+      );
+    }
+
+    if (columnType === 'boolean') {
+      return (
+        <div className="flex items-center justify-center gap-2">
+          <Select
+            value={value === true ? 'true' : value === false ? 'false' : 'null'}
+            onValueChange={(val) => {
+              const boolValue = val === 'true' ? true : val === 'false' ? false : null;
+              handleCellChange(rowIndex, colIndex, boolValue as boolean);
+            }}
+          >
+            <SelectTrigger className="w-20 h-7">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border shadow-lg z-50">
+              <SelectItem value="true">
+                <Check className="h-4 w-4 text-green-600" />
+              </SelectItem>
+              <SelectItem value="false">
+                <X className="h-4 w-4 text-red-600" />
+              </SelectItem>
+              <SelectItem value="null">
+                <Minus className="h-4 w-4 text-gray-400" />
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          {getCellStatusIcon(cellStatus[rowIndex]?.[colIndex] || 'normal')}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center">
+        <Input
+          type={columnType === 'number' ? 'number' : 'text'}
+          value={String(value)}
+          onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+          className="w-full h-7 p-1 text-sm"
+          onClick={(e) => e.stopPropagation()}
+        />
+        {getCellStatusIcon(cellStatus[rowIndex]?.[colIndex] || 'normal')}
+      </div>
+    );
   };
 
   return (
@@ -192,24 +331,55 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
       {content.title && (
         <div className="text-center font-bold pb-2">{content.title}</div>
       )}
+      
       <Table className="w-full border-collapse">
         <TableHeader>
           <TableRow>
             {localHeaders.map((header, index) => (
               <TableHead 
                 key={index} 
-                className="border p-1" 
+                className="border p-1 relative" 
                 style={{ backgroundColor: content.headerBgColor || '#f3f4f6' }}
               >
-                {isSelected ? (
-                  <Input
-                    value={header}
-                    onChange={(e) => handleHeaderChange(index, e.target.value)}
-                    className="w-full h-7 p-1 text-sm font-bold"
-                  />
-                ) : (
-                  <div className="p-1 text-sm font-bold">{header}</div>
-                )}
+                <div className="space-y-1">
+                  {isSelected ? (
+                    <>
+                      <Input
+                        value={header}
+                        onChange={(e) => handleHeaderChange(index, e.target.value)}
+                        className="w-full h-6 p-1 text-sm font-bold mb-1"
+                      />
+                      <div className="flex items-center gap-1">
+                        <Select
+                          value={localColumnTypes[index]}
+                          onValueChange={(value: ColumnType) => handleColumnTypeChange(index, value)}
+                        >
+                          <SelectTrigger className="w-full h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border shadow-lg z-50">
+                            <SelectItem value="string">Text</SelectItem>
+                            <SelectItem value="number">Number</SelectItem>
+                            <SelectItem value="boolean">Boolean</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {localHeaders.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteColumn(index)}
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            title={`Delete column ${header}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-1 text-sm font-bold">{header}</div>
+                  )}
+                </div>
               </TableHead>
             ))}
           </TableRow>
@@ -224,24 +394,23 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
               {row.map((cell, colIndex) => (
                 <TableCell 
                   key={colIndex} 
-                  className={`border p-1 ${getCellStatusStyle(cellStatus[rowIndex]?.[colIndex] || 'normal')}`}
+                  className={`border p-1 relative ${getCellStatusStyle(cellStatus[rowIndex]?.[colIndex] || 'normal')}`}
                   onClick={(e) => isSelected && e.ctrlKey ? cycleCellStatus(rowIndex, colIndex, e) : null}
                 >
-                  {isSelected ? (
-                    <div className="flex items-center">
-                      <Input
-                        value={cell.toString()}
-                        onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                        className="w-full h-7 p-1 text-sm"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      {getCellStatusIcon(cellStatus[rowIndex]?.[colIndex] || 'normal')}
-                    </div>
-                  ) : (
-                    <div className="p-1 text-sm">
-                      {cell.toString()}
-                      {getCellStatusIcon(cellStatus[rowIndex]?.[colIndex] || 'normal')}
-                    </div>
+                  {renderCellContent(cell, rowIndex, colIndex)}
+                  {isSelected && colIndex === 0 && localRows.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteRow(rowIndex);
+                      }}
+                      className="absolute -right-8 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                      title={`Delete row ${rowIndex + 1}`}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
                   )}
                 </TableCell>
               ))}
@@ -251,24 +420,36 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
       </Table>
       
       {isSelected && (
-        <div className="flex gap-2 mt-2 justify-end p-1">
-          <button 
-            onClick={addRow} 
-            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
-          >
-            Add Row
-          </button>
-          <button 
-            onClick={addColumn} 
-            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
-          >
-            Add Column
-          </button>
+        <div className="flex gap-2 mt-2 justify-between p-1">
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={addRow} 
+              className="h-8 px-3 text-xs"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Row
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={addColumn} 
+              className="h-8 px-3 text-xs"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Column
+            </Button>
+          </div>
         </div>
       )}
+      
       {isSelected && (
-        <div className="text-xs text-gray-500 mt-2 p-1">
-          Tip: Ctrl+Click on cells to toggle status (normal/positive/negative/warning/active)
+        <div className="text-xs text-gray-500 mt-2 p-1 space-y-1">
+          <div>• Double-click page numbers to rename pages</div>
+          <div>• Ctrl+Click on cells to toggle status (normal/positive/negative/warning/active)</div>
+          <div>• Click on rows to highlight them</div>
+          <div>• Set column types: Text, Number, or Boolean</div>
         </div>
       )}
     </div>
