@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -18,7 +18,8 @@ export const PageControls = () => {
     canvasState, 
     addPage, 
     setCurrentPage, 
-    renamePage 
+    renamePage,
+    removePage 
   } = useEditor();
   
   const [editingPageIndex, setEditingPageIndex] = useState<number | null>(null);
@@ -33,6 +34,13 @@ export const PageControls = () => {
   const handlePageClick = (index: number) => {
     if (index !== currentPageIndex) {
       setCurrentPage(index);
+    }
+  };
+  
+  const handleDeletePage = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    if (pages.length > 1) {
+      removePage(index);
     }
   };
   
@@ -72,14 +80,25 @@ export const PageControls = () => {
               />
             </form>
           ) : (
-            <PaginationLink
-              isActive={i === currentPageIndex}
-              onClick={() => handlePageClick(i)}
-              onDoubleClick={() => startEditingPage(i)}
-              className="cursor-pointer"
-            >
-              {i + 1}
-            </PaginationLink>
+            <div className="flex items-center gap-1">
+              <PaginationLink
+                isActive={i === currentPageIndex}
+                onClick={() => handlePageClick(i)}
+                onDoubleClick={() => startEditingPage(i)}
+                className="cursor-pointer"
+              >
+                {i + 1}
+              </PaginationLink>
+              {pages.length > 1 && (
+                <button
+                  onClick={(e) => handleDeletePage(e, i)}
+                  className="rounded-full hover:bg-red-100 p-1 text-red-500 hover:text-red-700 transition-colors"
+                  title={`Delete page ${i + 1}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           )}
         </PaginationItem>
       );
