@@ -283,7 +283,15 @@ export const systemTemplates: Template[] = [
 ];
 
 export const getTemplateById = (id: string): Template | undefined => {
-  return [...systemTemplates].find(template => template.id === id);
+  // First check system templates
+  const systemTemplate = systemTemplates.find(template => template.id === id);
+  if (systemTemplate) {
+    return systemTemplate;
+  }
+  
+  // Then check user templates
+  const userTemplates = getUserTemplates();
+  return userTemplates.find(template => template.id === id);
 };
 
 export const getUserTemplates = (): Template[] => {
@@ -304,7 +312,7 @@ export const saveUserTemplate = (template: Template): void => {
     userTemplates.push({
       ...template,
       category: 'custom',
-      id: `custom-${Date.now()}`
+      id: template.id || `custom-${Date.now()}`
     });
   }
   

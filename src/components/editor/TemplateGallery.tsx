@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { fetchAllTemplates } from "@/redux/slices/templatesSlice";
 import { createNewReport } from "@/redux/slices/reportsSlice";
+import { getUserTemplates } from "@/lib/templates";
+import { Template } from "@/types/editor";
 
 interface TemplateGalleryProps {
   onSelectTemplate?: () => void;
@@ -17,12 +19,16 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
 }) => {
   const [reportName, setReportName] = useState("New Report");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [userTemplates, setUserTemplates] = useState<Template[]>([]);
   
   const dispatch = useAppDispatch();
   const { templates, loading } = useAppSelector(state => state.templates);
   
   useEffect(() => {
     dispatch(fetchAllTemplates());
+    // Load user templates from localStorage
+    const customTemplates = getUserTemplates();
+    setUserTemplates(customTemplates);
   }, [dispatch]);
 
   const handleCreateReport = async () => {
@@ -49,6 +55,9 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
     }
   };
 
+  // Combine system and user templates
+  const allTemplates = [...templates, ...userTemplates];
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -67,7 +76,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
           <div className="text-center py-4">Loading templates...</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {templates.map((template) => (
+            {allTemplates.map((template) => (
               <div
                 key={template.id}
                 className={`border rounded-lg p-3 cursor-pointer transition-all hover:border-primary ${
