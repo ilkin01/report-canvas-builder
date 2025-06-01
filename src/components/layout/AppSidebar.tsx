@@ -1,82 +1,157 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { TemplateGallery } from "@/components/editor/TemplateGallery";
-import { TemplateManagement } from "@/components/editor/TemplateManagement";
-import { TemplateCreationDialog } from "@/components/editor/TemplateCreationDialog";
-import { Plus } from "lucide-react";
+import { Plus, Type, BarChart3, Square, MessageSquare, PenTool, Table } from "lucide-react";
+import { useEditor } from "@/context/EditorContext";
+import { ElementProperties } from "@/components/editor/properties/ElementProperties";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const AppSidebar = () => {
-  const [showTemplateCreation, setShowTemplateCreation] = useState(false);
-  const [showTemplateManagement, setShowTemplateManagement] = useState(false);
+  const { addElement, canvasState } = useEditor();
+
+  const selectedElement = canvasState.pages[canvasState.currentPageIndex]?.elements.find(
+    (el) => el.isSelected
+  );
+
+  const handleAddElement = (type: string) => {
+    const elementData = {
+      type,
+      x: 50,
+      y: 50,
+      width: type === "text" ? 200 : type === "table" ? 400 : 150,
+      height: type === "text" ? 50 : type === "table" ? 200 : 100,
+      content: getDefaultContent(type),
+    };
+    
+    addElement(elementData as any);
+  };
+
+  const getDefaultContent = (type: string) => {
+    switch (type) {
+      case "text":
+        return { text: "Sample Text", fontSize: 16, color: "#333333", textAlign: "left" };
+      case "chart":
+        return {
+          type: "bar",
+          data: [
+            { name: "A", value: 100 },
+            { name: "B", value: 200 },
+            { name: "C", value: 150 }
+          ],
+          title: "Sample Chart"
+        };
+      case "shape":
+        return { 
+          type: "rectangle", 
+          color: "#E5F3FF", 
+          borderColor: "#0EA5E9", 
+          borderWidth: 1 
+        };
+      case "comment":
+        return { text: "Add your comment here", author: "User" };
+      case "signature":
+        return { name: "", date: new Date().toISOString().split('T')[0] };
+      case "table":
+        return {
+          title: "Sample Table",
+          headers: ["Column 1", "Column 2", "Column 3"],
+          columnTypes: ["string", "string", "string"],
+          rows: [
+            ["Row 1 Col 1", "Row 1 Col 2", "Row 1 Col 3"],
+            ["Row 2 Col 1", "Row 2 Col 2", "Row 2 Col 3"]
+          ],
+          highlightedRows: [],
+          headerBgColor: "#f3f4f6",
+          highlightColor: "#fef9c3"
+        };
+      default:
+        return {};
+    }
+  };
 
   return (
-    <div className="w-80 border-r bg-gray-50 p-4 space-y-4">
-      {/* Create Template Section */}
-      <div className="space-y-2">
-        <h3 className="font-semibold text-lg">Templates</h3>
-        <div className="space-y-2">
+    <div className="w-80 border-r bg-gray-50 flex flex-col h-full">
+      {/* Elements Section */}
+      <div className="p-4 border-b">
+        <h3 className="font-semibold text-lg mb-3">Add Elements</h3>
+        <div className="grid grid-cols-2 gap-2">
           <Button
-            onClick={() => setShowTemplateCreation(true)}
-            className="w-full"
+            onClick={() => handleAddElement("text")}
             variant="outline"
+            size="sm"
+            className="flex flex-col h-auto py-3"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Template
+            <Type className="h-4 w-4 mb-1" />
+            <span className="text-xs">Text</span>
           </Button>
           
           <Button
-            onClick={() => setShowTemplateManagement(true)}
-            className="w-full"
+            onClick={() => handleAddElement("chart")}
             variant="outline"
+            size="sm"
+            className="flex flex-col h-auto py-3"
           >
-            Manage Templates
+            <BarChart3 className="h-4 w-4 mb-1" />
+            <span className="text-xs">Chart</span>
+          </Button>
+          
+          <Button
+            onClick={() => handleAddElement("shape")}
+            variant="outline"
+            size="sm"
+            className="flex flex-col h-auto py-3"
+          >
+            <Square className="h-4 w-4 mb-1" />
+            <span className="text-xs">Shape</span>
+          </Button>
+          
+          <Button
+            onClick={() => handleAddElement("table")}
+            variant="outline"
+            size="sm"
+            className="flex flex-col h-auto py-3"
+          >
+            <Table className="h-4 w-4 mb-1" />
+            <span className="text-xs">Table</span>
+          </Button>
+          
+          <Button
+            onClick={() => handleAddElement("comment")}
+            variant="outline"
+            size="sm"
+            className="flex flex-col h-auto py-3"
+          >
+            <MessageSquare className="h-4 w-4 mb-1" />
+            <span className="text-xs">Comment</span>
+          </Button>
+          
+          <Button
+            onClick={() => handleAddElement("signature")}
+            variant="outline"
+            size="sm"
+            className="flex flex-col h-auto py-3"
+          >
+            <PenTool className="h-4 w-4 mb-1" />
+            <span className="text-xs">Signature</span>
           </Button>
         </div>
       </div>
 
-      {/* Template Gallery */}
-      <div className="space-y-2">
-        <h4 className="font-medium">New Report from Template</h4>
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" className="w-full">
-              Browse Templates
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[600px] sm:w-[700px]">
-            <SheetHeader>
-              <SheetTitle>Template Gallery</SheetTitle>
-              <SheetDescription>
-                Choose a template to create a new report
-              </SheetDescription>
-            </SheetHeader>
-            <div className="mt-6">
-              <TemplateGallery />
+      {/* Properties Section */}
+      <div className="flex-1 flex flex-col">
+        {selectedElement ? (
+          <div className="flex-1">
+            <div className="p-4 border-b">
+              <h3 className="font-semibold">Element Properties</h3>
             </div>
-          </SheetContent>
-        </Sheet>
+            <ElementProperties element={selectedElement} />
+          </div>
+        ) : (
+          <div className="p-4 text-center text-gray-500">
+            <p>Select an element to edit its properties</p>
+          </div>
+        )}
       </div>
-
-      {/* Template Creation Dialog */}
-      <TemplateCreationDialog
-        open={showTemplateCreation}
-        onOpenChange={setShowTemplateCreation}
-      />
-
-      {/* Template Management Dialog */}
-      <TemplateManagement
-        open={showTemplateManagement}
-        onOpenChange={setShowTemplateManagement}
-      />
     </div>
   );
 };
