@@ -10,10 +10,11 @@ import { fetchAllReports } from "@/redux/slices/reportsSlice";
 import { fetchAllTemplates } from "@/redux/slices/templatesSlice";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings } from "lucide-react";
+import { Plus, Settings, PenTool } from "lucide-react";
 import { TemplateCreationDialog } from "@/components/editor/TemplateCreationDialog";
 import { TemplateManagement } from "@/components/editor/TemplateManagement";
 import { TemplateGallery } from "@/components/editor/TemplateGallery";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ const Index = () => {
   
   const dispatch = useAppDispatch();
   const { reports, activeReportId } = useAppSelector(state => state.reports);
+  const navigate = useNavigate();
   
   useEffect(() => {
     // Load initial data
@@ -50,6 +52,10 @@ const Index = () => {
     }
   }, [activeReportId]);
 
+  const handleCreateTemplate = () => {
+    navigate("/template-creator");
+  };
+
   return (
     <EditorProvider>
       <div className="min-h-screen flex flex-col">
@@ -62,11 +68,19 @@ const Index = () => {
                 <h2 className="text-xl font-semibold mb-4">Template Management</h2>
                 <div className="flex gap-3">
                   <Button
+                    onClick={handleCreateTemplate}
+                    variant="outline"
+                  >
+                    <PenTool className="h-4 w-4 mr-2" />
+                    Create New Template
+                  </Button>
+                  
+                  <Button
                     onClick={() => setShowTemplateCreation(true)}
                     variant="outline"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Template
+                    Quick Template
                   </Button>
                   
                   <Button
