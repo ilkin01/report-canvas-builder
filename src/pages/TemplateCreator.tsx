@@ -40,10 +40,19 @@ const TemplateCreatorContent = () => {
         status: 'draft' as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        pages: template.pages || [{
+        pages: template.pages && template.pages.length > 0 ? template.pages.map(page => ({
+          ...page,
+          elements: page.elements.map(element => ({
+            ...element,
+            isSelected: false
+          }))
+        })) : [{
           id: 'page-1',
           name: 'Page 1',
-          elements: template.elements || [],
+          elements: template.elements ? template.elements.map(element => ({
+            ...element,
+            isSelected: false
+          })) : [],
           width: 595,
           height: 842
         }]
@@ -52,8 +61,27 @@ const TemplateCreatorContent = () => {
       setActiveReport(mockReport);
       localStorage.removeItem('editingTemplate');
     } else {
-      // Clear any existing report when creating new template
-      setActiveReport(null);
+      // Create a default template editing environment with one page
+      const defaultMockReport = {
+        id: 'temp-new',
+        templateId: 'temp',
+        patientId: 'temp',
+        patientName: 'New Template',
+        name: 'New Template',
+        type: 'template-edit',
+        status: 'draft' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        pages: [{
+          id: 'page-1',
+          name: 'Page 1',
+          elements: [],
+          width: 595,
+          height: 842
+        }]
+      };
+      
+      setActiveReport(defaultMockReport);
     }
   }, [setActiveReport]);
 
@@ -65,13 +93,6 @@ const TemplateCreatorContent = () => {
 
     if (canvasState.pages.length === 0) {
       toast.error("Please add at least one page to the template");
-      return;
-    }
-
-    // Check if any page has elements
-    const hasElements = canvasState.pages.some(page => page.elements.length > 0);
-    if (!hasElements) {
-      toast.error("Please add some elements to at least one page before saving");
       return;
     }
 
