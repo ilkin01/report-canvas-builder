@@ -32,6 +32,7 @@ const TemplateCreatorContent = () => {
       // Load template into editor
       const mockReport = {
         id: 'temp-editing',
+        templateId: 'temp',
         patientId: 'temp',
         patientName: 'Template Editing',
         name: template.name,

@@ -101,6 +101,7 @@ export type Template = {
   name: string;
   thumbnail?: string;
   elements: ElementData[];
+  pages?: Page[];
   category: 'system' | 'custom';
 };
 
