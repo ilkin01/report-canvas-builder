@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useEditorContext } from "@/context/EditorContext";
+import { useEditor } from "@/context/EditorContext";
 import { saveUserTemplate } from "@/lib/templates";
 import { Template } from "@/types/editor";
 
@@ -26,7 +26,7 @@ export const TemplateCreationDialog: React.FC<TemplateCreationDialogProps> = ({
   onOpenChange,
 }) => {
   const [templateName, setTemplateName] = useState("");
-  const { canvasState } = useEditorContext();
+  const { canvasState } = useEditor();
 
   const handleCreateTemplate = () => {
     if (!templateName.trim()) {
