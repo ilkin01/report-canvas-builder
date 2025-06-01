@@ -10,8 +10,7 @@ import { fetchAllReports } from "@/redux/slices/reportsSlice";
 import { fetchAllTemplates } from "@/redux/slices/templatesSlice";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, PenTool } from "lucide-react";
-import { TemplateCreationDialog } from "@/components/editor/TemplateCreationDialog";
+import { Settings, PenTool } from "lucide-react";
 import { TemplateManagement } from "@/components/editor/TemplateManagement";
 import { TemplateGallery } from "@/components/editor/TemplateGallery";
 import { useNavigate } from "react-router-dom";
@@ -26,7 +25,6 @@ import {
 
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [showTemplateCreation, setShowTemplateCreation] = useState(false);
   const [showTemplateManagement, setShowTemplateManagement] = useState(false);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   
@@ -76,14 +74,6 @@ const Index = () => {
                   </Button>
                   
                   <Button
-                    onClick={() => setShowTemplateCreation(true)}
-                    variant="outline"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Quick Template
-                  </Button>
-                  
-                  <Button
                     onClick={() => setShowTemplateManagement(true)}
                     variant="outline"
                   >
@@ -114,12 +104,6 @@ const Index = () => {
 
               {/* Patients List */}
               <PatientsList onReportSelect={() => setIsEditing(true)} />
-
-              {/* Template Creation Dialog */}
-              <TemplateCreationDialog
-                open={showTemplateCreation}
-                onOpenChange={setShowTemplateCreation}
-              />
 
               {/* Template Management Dialog */}
               <TemplateManagement

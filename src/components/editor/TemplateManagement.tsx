@@ -14,7 +14,8 @@ import {
 import { toast } from "sonner";
 import { getUserTemplates, saveUserTemplate } from "@/lib/templates";
 import { Template } from "@/types/editor";
-import { Trash, Plus } from "lucide-react";
+import { Trash, Edit, PenTool } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface TemplateManagementProps {
   open: boolean;
@@ -28,6 +29,7 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
   const [userTemplates, setUserTemplates] = useState<Template[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [editName, setEditName] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (open) {
@@ -47,9 +49,17 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
     toast.success("Template deleted successfully");
   };
 
-  const handleEditTemplate = (template: Template) => {
+  const handleEditTemplateName = (template: Template) => {
     setEditingTemplate(template);
     setEditName(template.name);
+  };
+
+  const handleEditTemplateContent = (template: Template) => {
+    // Store the template to edit in localStorage temporarily
+    localStorage.setItem('editingTemplate', JSON.stringify(template));
+    onOpenChange(false);
+    navigate("/template-creator");
+    toast.info("Template loaded for editing. Make your changes and save.");
   };
 
   const handleSaveEdit = () => {
@@ -83,7 +93,7 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
           <DialogHeader>
             <DialogTitle>Template Management</DialogTitle>
             <DialogDescription>
-              Manage your custom templates. You can edit names or delete templates you no longer need.
+              Manage your custom templates. You can edit names, modify content, or delete templates you no longer need.
             </DialogDescription>
           </DialogHeader>
           
@@ -102,21 +112,31 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
                     <div className="flex-1">
                       <h4 className="font-medium">{template.name}</h4>
                       <p className="text-sm text-gray-500">
-                        {template.elements.length} elements
+                        {template.pages ? template.pages.length : 1} page(s), {template.elements?.length || 0} elements
                       </p>
                     </div>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEditTemplate(template)}
+                        onClick={() => handleEditTemplateName(template)}
+                        title="Edit template name"
                       >
-                        Edit
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditTemplateContent(template)}
+                        title="Edit template content"
+                      >
+                        <PenTool className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => handleDeleteTemplate(template.id)}
+                        title="Delete template"
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
@@ -135,11 +155,11 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Template Dialog */}
+      {/* Edit Template Name Dialog */}
       <Dialog open={!!editingTemplate} onOpenChange={() => setEditingTemplate(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Template</DialogTitle>
+            <DialogTitle>Edit Template Name</DialogTitle>
             <DialogDescription>
               Update the template name.
             </DialogDescription>
