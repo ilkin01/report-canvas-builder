@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -166,8 +165,10 @@ const TemplateCreatorContent = () => {
         </Button>
       </div>
 
-      {/* Page Controls */}
-      <PageControls />
+      {/* Page Controls - Always visible in template creator */}
+      <div className="border-b border-t p-2 bg-muted/40">
+        <PageControls />
+      </div>
 
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
