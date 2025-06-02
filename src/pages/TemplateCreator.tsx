@@ -166,12 +166,14 @@ const TemplateCreatorContent = () => {
         </Button>
       </div>
 
-      {/* Page Controls - Always show in template creator */}
+      {/* Page Controls */}
       <PageControls />
 
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
-        <EditorCanvas />
+        <div className="flex-1 overflow-hidden">
+          <EditorCanvas />
+        </div>
       </div>
     </div>
   );
