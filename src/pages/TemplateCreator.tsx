@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -170,24 +171,7 @@ const TemplateCreatorContent = () => {
 
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 h-[calc(100vh-8rem)] overflow-hidden flex flex-col">
-          <div className="flex justify-center flex-1 overflow-auto p-6 bg-gray-100">
-            <div
-              className="canvas-container relative shadow-lg bg-white"
-              style={{
-                width: `${canvasState.pages[canvasState.currentPageIndex]?.width || 595}px`,
-                height: `${canvasState.pages[canvasState.currentPageIndex]?.height || 842}px`,
-                backgroundColor: "white",
-              }}
-            >
-              {canvasState.pages[canvasState.currentPageIndex]?.elements.map((element) => (
-                <div key={element.id}>
-                  {/* Canvas elements will be rendered here by EditorCanvas logic */}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <EditorCanvas />
       </div>
     </div>
   );
