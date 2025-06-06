@@ -1,9 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { EditorCanvas } from "@/components/editor/EditorCanvas";
 import { EditorProvider } from "@/context/EditorContext";
-import { PageControls } from "@/components/editor/PageControls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -163,11 +163,6 @@ const TemplateCreatorContent = () => {
           <Save className="h-4 w-4 mr-2" />
           {editingTemplateId ? 'Update Template' : 'Save Template'}
         </Button>
-      </div>
-
-      {/* Page Controls - Always visible in template creator */}
-      <div className="border-b border-t p-2 bg-muted/40">
-        <PageControls />
       </div>
 
       <div className="flex flex-1 overflow-hidden">
