@@ -1,8 +1,8 @@
-
 import { mockReports, mockTemplates } from './mockData';
 import { ReportDocument, Template } from '@/types/editor';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
+import { getUserTemplates } from '@/lib/templates';
 
 // Simulate network delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -31,7 +31,15 @@ export const reportsApi = {
   createReport: async (name: string, templateId: string): Promise<ReportDocument> => {
     await delay(700);
     
-    const template = mockTemplates.find(t => t.id === templateId);
+    // First check system templates
+    let template = mockTemplates.find(t => t.id === templateId);
+    
+    // If not found in system templates, check user templates
+    if (!template) {
+      const userTemplates = getUserTemplates();
+      template = userTemplates.find(t => t.id === templateId);
+    }
+    
     if (!template) {
       console.error("Template not found:", templateId);
       toast.error("Template not found");
@@ -40,22 +48,33 @@ export const reportsApi = {
     
     console.log("Creating report with template:", template);
     
+    // Use pages if available (for multi-page templates), otherwise use elements
+    const templatePages = template.pages && template.pages.length > 0 
+      ? JSON.parse(JSON.stringify(template.pages))
+      : [
+          {
+            id: uuidv4(),
+            name: "Page 1",
+            elements: JSON.parse(JSON.stringify(template.elements || [])),
+            width: 595,
+            height: 842
+          }
+        ];
+    
     const newReport: ReportDocument = {
       id: uuidv4(),
       name,
       templateId,
-      pages: [
-        {
-          id: uuidv4(),
-          name: "Page 1",
-          elements: JSON.parse(JSON.stringify(template.elements)) // Deep copy
-        }
-      ],
+      pages: templatePages,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     
     console.log("Created new report:", newReport);
+    
+    // Store the new report in mockReports for session persistence
+    mockReports.push(newReport);
+    
     return newReport;
   },
 
