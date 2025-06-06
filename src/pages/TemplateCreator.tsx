@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { EditorCanvas } from "@/components/editor/EditorCanvas";
 import { EditorProvider } from "@/context/EditorContext";
+import { PageControls } from "@/components/editor/PageControls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -165,10 +166,30 @@ const TemplateCreatorContent = () => {
         </Button>
       </div>
 
+      {/* Page Controls - Always visible in template creator */}
+      <div className="border-b bg-muted/40">
+        <PageControls />
+      </div>
+
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
         <div className="flex-1 overflow-hidden">
-          <EditorCanvas />
+          <div className="h-full overflow-auto p-6 bg-gray-100 flex justify-center">
+            <div
+              className="canvas-container relative shadow-lg bg-white"
+              style={{
+                width: `${canvasState.pages[canvasState.currentPageIndex]?.width || 595}px`,
+                height: `${canvasState.pages[canvasState.currentPageIndex]?.height || 842}px`,
+                backgroundColor: "white",
+              }}
+            >
+              {canvasState.pages[canvasState.currentPageIndex]?.elements.map((element) => (
+                <div key={element.id} className="canvas-element">
+                  {/* Elements will be rendered by CanvasElement component */}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
