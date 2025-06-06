@@ -12,37 +12,54 @@ interface ChartPropertiesProps {
 }
 
 export const ChartProperties: React.FC<ChartPropertiesProps> = ({ element, handleChange }) => {
-  const chartData = element.content.data || {
-    labels: [],
-    datasets: [{ label: "", data: [] }],
+  // Provide default data structure if missing or incomplete
+  const defaultChartData = {
+    labels: ["Label 1", "Label 2", "Label 3"],
+    datasets: [{
+      label: "Dataset 1",
+      data: [10, 20, 30],
+      backgroundColor: "rgba(14, 165, 233, 0.6)",
+      borderColor: "#0EA5E9"
+    }]
+  };
+
+  const chartData = element.content.data || defaultChartData;
+
+  // Ensure datasets array exists and has at least one dataset
+  const safeChartData = {
+    ...chartData,
+    labels: chartData.labels || defaultChartData.labels,
+    datasets: chartData.datasets && chartData.datasets.length > 0 
+      ? chartData.datasets 
+      : defaultChartData.datasets
   };
 
   const handleDatasetChange = (index: number, field: string, value: any) => {
-    const updatedDatasets = [...chartData.datasets];
+    const updatedDatasets = [...safeChartData.datasets];
     updatedDatasets[index] = {
       ...updatedDatasets[index],
       [field]: value,
     };
 
     handleChange("data", {
-      ...chartData,
+      ...safeChartData,
       datasets: updatedDatasets,
     });
   };
 
   const handleLabelChange = (index: number, value: string) => {
-    const updatedLabels = [...chartData.labels];
+    const updatedLabels = [...safeChartData.labels];
     updatedLabels[index] = value;
 
     handleChange("data", {
-      ...chartData,
+      ...safeChartData,
       labels: updatedLabels,
     });
   };
 
   const handleDataValueChange = (datasetIndex: number, valueIndex: number, value: string) => {
-    const updatedDatasets = [...chartData.datasets];
-    const newDataArray = [...updatedDatasets[datasetIndex].data];
+    const updatedDatasets = [...safeChartData.datasets];
+    const newDataArray = [...(updatedDatasets[datasetIndex]?.data || [])];
     newDataArray[valueIndex] = parseFloat(value) || 0;
 
     updatedDatasets[datasetIndex] = {
@@ -51,18 +68,18 @@ export const ChartProperties: React.FC<ChartPropertiesProps> = ({ element, handl
     };
 
     handleChange("data", {
-      ...chartData,
+      ...safeChartData,
       datasets: updatedDatasets,
     });
   };
 
   const addLabel = () => {
-    const updatedLabels = [...chartData.labels, `Label ${chartData.labels.length + 1}`];
+    const updatedLabels = [...safeChartData.labels, `Label ${safeChartData.labels.length + 1}`];
     
     // Also add a corresponding data point to each dataset
-    const updatedDatasets = chartData.datasets.map(dataset => ({
+    const updatedDatasets = safeChartData.datasets.map(dataset => ({
       ...dataset,
-      data: [...dataset.data, 0]
+      data: [...(dataset.data || []), 0]
     }));
 
     handleChange("data", {
@@ -72,12 +89,12 @@ export const ChartProperties: React.FC<ChartPropertiesProps> = ({ element, handl
   };
 
   const removeLabel = (index: number) => {
-    const updatedLabels = chartData.labels.filter((_, i) => i !== index);
+    const updatedLabels = safeChartData.labels.filter((_, i) => i !== index);
     
     // Also remove the corresponding data point from each dataset
-    const updatedDatasets = chartData.datasets.map(dataset => ({
+    const updatedDatasets = safeChartData.datasets.map(dataset => ({
       ...dataset,
-      data: dataset.data.filter((_, i) => i !== index)
+      data: (dataset.data || []).filter((_, i) => i !== index)
     }));
 
     handleChange("data", {
@@ -85,6 +102,9 @@ export const ChartProperties: React.FC<ChartPropertiesProps> = ({ element, handl
       datasets: updatedDatasets,
     });
   };
+
+  // Get the first dataset safely
+  const firstDataset = safeChartData.datasets[0] || defaultChartData.datasets[0];
 
   return (
     <div className="space-y-4">
@@ -108,7 +128,7 @@ export const ChartProperties: React.FC<ChartPropertiesProps> = ({ element, handl
       <div className="space-y-2">
         <Label>Dataset Label</Label>
         <Input
-          value={chartData.datasets[0]?.label || ""}
+          value={firstDataset.label || ""}
           onChange={(e) => handleDatasetChange(0, "label", e.target.value)}
           placeholder="Dataset label"
         />
@@ -129,7 +149,7 @@ export const ChartProperties: React.FC<ChartPropertiesProps> = ({ element, handl
         </div>
         
         <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-          {chartData.labels.map((label, index) => (
+          {safeChartData.labels.map((label, index) => (
             <div key={index} className="flex gap-2 items-center">
               <Input
                 value={label}
@@ -139,7 +159,7 @@ export const ChartProperties: React.FC<ChartPropertiesProps> = ({ element, handl
               />
               <Input
                 type="number"
-                value={chartData.datasets[0]?.data[index] || 0}
+                value={firstDataset.data?.[index] || 0}
                 onChange={(e) => handleDataValueChange(0, index, e.target.value)}
                 placeholder="Value"
                 className="w-20"
@@ -165,9 +185,9 @@ export const ChartProperties: React.FC<ChartPropertiesProps> = ({ element, handl
             id="backgroundColor"
             type="color"
             value={
-              Array.isArray(chartData.datasets[0]?.backgroundColor)
-                ? chartData.datasets[0]?.backgroundColor[0]
-                : chartData.datasets[0]?.backgroundColor || "rgba(14, 165, 233, 0.6)"
+              Array.isArray(firstDataset.backgroundColor)
+                ? firstDataset.backgroundColor[0] || "#0EA5E9"
+                : firstDataset.backgroundColor || "#0EA5E9"
             }
             onChange={(e) => handleDatasetChange(0, "backgroundColor", e.target.value)}
             className="w-12 h-10 p-1"
@@ -175,9 +195,9 @@ export const ChartProperties: React.FC<ChartPropertiesProps> = ({ element, handl
           <Input
             type="text"
             value={
-              Array.isArray(chartData.datasets[0]?.backgroundColor)
-                ? chartData.datasets[0]?.backgroundColor[0]
-                : chartData.datasets[0]?.backgroundColor || "rgba(14, 165, 233, 0.6)"
+              Array.isArray(firstDataset.backgroundColor)
+                ? firstDataset.backgroundColor[0] || "#0EA5E9"
+                : firstDataset.backgroundColor || "#0EA5E9"
             }
             onChange={(e) => handleDatasetChange(0, "backgroundColor", e.target.value)}
             className="flex-1"
