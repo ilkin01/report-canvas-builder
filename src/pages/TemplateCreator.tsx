@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { EditorCanvas } from "@/components/editor/EditorCanvas";
 import { EditorProvider } from "@/context/EditorContext";
 import { PageControls } from "@/components/editor/PageControls";
+import { CanvasElement } from "@/components/editor/elements/CanvasElement";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,7 @@ import { useEditor } from "@/context/EditorContext";
 const TemplateCreatorContent = () => {
   const [templateName, setTemplateName] = useState("");
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
-  const { canvasState, setActiveReport } = useEditor();
+  const { canvasState, setActiveReport, clearSelection } = useEditor();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -182,11 +182,14 @@ const TemplateCreatorContent = () => {
                 height: `${canvasState.pages[canvasState.currentPageIndex]?.height || 842}px`,
                 backgroundColor: "white",
               }}
+              onClick={(e) => {
+                if (e.currentTarget === e.target) {
+                  clearSelection();
+                }
+              }}
             >
               {canvasState.pages[canvasState.currentPageIndex]?.elements.map((element) => (
-                <div key={element.id} className="canvas-element">
-                  {/* Elements will be rendered by CanvasElement component */}
-                </div>
+                <CanvasElement key={element.id} element={element} />
               ))}
             </div>
           </div>
