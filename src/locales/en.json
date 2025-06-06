@@ -1,0 +1,62 @@
+
+{
+  "dashboard": {
+    "title": "Laboratory Dashboard",
+    "subtitle": "Manage your daily laboratory operations",
+    "todayAnalyses": "Today's Analyses",
+    "activePatients": "Active Patients",
+    "totalReports": "Total Reports",
+    "averageTime": "Average Time",
+    "fromYesterday": "from yesterday",
+    "thisWeek": "this week",
+    "thisMonth": "this month",
+    "improvement": "improvement",
+    "createAnalysis": "Create Laboratory Analysis",
+    "newTemplate": "New Template",
+    "settings": "Settings",
+    "dailyAnalysisNumbers": "Daily Analysis Numbers",
+    "thisWeekDistribution": "This week's daily analysis distribution",
+    "analysisTypes": "Analysis Types",
+    "thisMonthDistribution": "This month's distribution",
+    "monthlyTrendAnalysis": "Monthly Trend Analysis",
+    "monthlyDevelopment": "Monthly development of patient and analysis numbers",
+    "recentPatients": "Recent Patients",
+    "recentPatientsDescription": "Recently registered patients and their analysis status",
+    "selectAnalysisTemplate": "Select Analysis Template",
+    "selectTemplateDescription": "Select a template to create new laboratory analysis"
+  },
+  "days": {
+    "monday": "Mon",
+    "tuesday": "Tue",
+    "wednesday": "Wed",
+    "thursday": "Thu",
+    "friday": "Fri",
+    "saturday": "Sat",
+    "sunday": "Sun"
+  },
+  "months": {
+    "jan": "Jan",
+    "feb": "Feb",
+    "mar": "Mar",
+    "apr": "Apr",
+    "may": "May",
+    "jun": "Jun",
+    "jul": "Jul",
+    "aug": "Aug",
+    "sep": "Sep",
+    "oct": "Oct",
+    "nov": "Nov",
+    "dec": "Dec"
+  },
+  "analysisTypes": {
+    "bloodTest": "Blood Test",
+    "urineTest": "Urine Test",
+    "biochemistry": "Biochemistry",
+    "microbiology": "Microbiology"
+  },
+  "chartLabels": {
+    "value": "Value",
+    "patients": "Patients",
+    "analyses": "Analyses"
+  }
+}

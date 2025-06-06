@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { EditorCanvas } from "@/components/editor/EditorCanvas";
 import { EditorProvider } from "@/context/EditorContext";
 import { PatientsList } from "@/components/patients/PatientsList";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { fetchAllReports } from "@/redux/slices/reportsSlice";
@@ -17,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -26,48 +28,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-// Mock data for dashboard statistics
-const dailyAnalysisData = [
-  { name: "Pzt", value: 24 },
-  { name: "Sal", value: 31 },
-  { name: "Çar", value: 28 },
-  { name: "Per", value: 35 },
-  { name: "Cum", value: 42 },
-  { name: "Cmt", value: 38 },
-  { name: "Paz", value: 29 },
-];
-
-const analysisTypeData = [
-  { name: "Kan Tahlili", value: 45, color: "#0EA5E9" },
-  { name: "İdrar Tahlili", value: 25, color: "#10B981" },
-  { name: "Biyokimya", value: 20, color: "#F97316" },
-  { name: "Mikrobiyoloji", value: 10, color: "#EF4444" },
-];
-
-const monthlyTrendData = [
-  { month: "Oca", patients: 145, analyses: 324 },
-  { month: "Şub", patients: 152, analyses: 342 },
-  { month: "Mar", patients: 168, analyses: 378 },
-  { month: "Nis", patients: 175, analyses: 395 },
-  { month: "May", patients: 183, analyses: 412 },
-  { month: "Haz", patients: 192, analyses: 435 },
-];
-
-const chartConfig = {
-  value: {
-    label: "Değer",
-    color: "#0EA5E9",
-  },
-  patients: {
-    label: "Hastalar",
-    color: "#0EA5E9",
-  },
-  analyses: {
-    label: "Analizler",
-    color: "#10B981",
-  },
-};
-
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showTemplateManagement, setShowTemplateManagement] = useState(false);
@@ -76,6 +36,49 @@ const Index = () => {
   const dispatch = useAppDispatch();
   const { reports, activeReportId } = useAppSelector(state => state.reports);
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  
+  // Mock data for dashboard statistics with i18n support
+  const dailyAnalysisData = [
+    { name: t('days.monday'), value: 24 },
+    { name: t('days.tuesday'), value: 31 },
+    { name: t('days.wednesday'), value: 28 },
+    { name: t('days.thursday'), value: 35 },
+    { name: t('days.friday'), value: 42 },
+    { name: t('days.saturday'), value: 38 },
+    { name: t('days.sunday'), value: 29 },
+  ];
+
+  const analysisTypeData = [
+    { name: t('analysisTypes.bloodTest'), value: 45, color: "#0EA5E9" },
+    { name: t('analysisTypes.urineTest'), value: 25, color: "#10B981" },
+    { name: t('analysisTypes.biochemistry'), value: 20, color: "#F97316" },
+    { name: t('analysisTypes.microbiology'), value: 10, color: "#EF4444" },
+  ];
+
+  const monthlyTrendData = [
+    { month: t('months.jan'), patients: 145, analyses: 324 },
+    { month: t('months.feb'), patients: 152, analyses: 342 },
+    { month: t('months.mar'), patients: 168, analyses: 378 },
+    { month: t('months.apr'), patients: 175, analyses: 395 },
+    { month: t('months.may'), patients: 183, analyses: 412 },
+    { month: t('months.jun'), patients: 192, analyses: 435 },
+  ];
+
+  const chartConfig = {
+    value: {
+      label: t('chartLabels.value'),
+      color: "#0EA5E9",
+    },
+    patients: {
+      label: t('chartLabels.patients'),
+      color: "#0EA5E9",
+    },
+    analyses: {
+      label: t('chartLabels.analyses'),
+      color: "#10B981",
+    },
+  };
   
   useEffect(() => {
     // Load initial data
@@ -111,99 +114,103 @@ const Index = () => {
           {!isEditing ? (
             <div className="flex-1 overflow-auto">
               {/* Dashboard Header */}
-              <div className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Laboratuvar Dashboard</h1>
-                    <p className="text-gray-600">Günlük laboratuvar operasyonlarınızı yönetin</p>
+              <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+                    <p className="text-sm sm:text-base text-gray-600 mt-1">{t('dashboard.subtitle')}</p>
                   </div>
-                  <div className="flex gap-3">
-                    <Button onClick={handleCreateAnalysis} className="bg-medical-blue hover:bg-blue-600">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                    <LanguageSwitcher />
+                    <Button onClick={handleCreateAnalysis} className="bg-medical-blue hover:bg-blue-600 w-full sm:w-auto text-sm">
                       <TestTube className="h-4 w-4 mr-2" />
-                      Laboratuvar Analizi Oluştur
+                      <span className="hidden sm:inline">{t('dashboard.createAnalysis')}</span>
+                      <span className="sm:hidden">Analiz</span>
                     </Button>
-                    <Button onClick={handleCreateTemplate} variant="outline">
+                    <Button onClick={handleCreateTemplate} variant="outline" className="w-full sm:w-auto text-sm">
                       <PenTool className="h-4 w-4 mr-2" />
-                      Yeni Şablon
+                      <span className="hidden sm:inline">{t('dashboard.newTemplate')}</span>
+                      <span className="sm:hidden">Şablon</span>
                     </Button>
-                    <Button onClick={() => setShowTemplateManagement(true)} variant="outline">
+                    <Button onClick={() => setShowTemplateManagement(true)} variant="outline" className="w-full sm:w-auto text-sm">
                       <Settings className="h-4 w-4 mr-2" />
-                      Ayarlar
+                      <span className="hidden sm:inline">{t('dashboard.settings')}</span>
+                      <span className="sm:hidden">Ayarlar</span>
                     </Button>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-4 sm:p-6 space-y-6">
                 {/* Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   <Card className="animate-fade-in">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Bugünkü Analizler</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t('dashboard.todayAnalyses')}</CardTitle>
                       <TestTube className="h-4 w-4 text-medical-blue" />
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-medical-blue">42</div>
                       <p className="text-xs text-muted-foreground">
-                        <span className="text-medical-success">+12%</span> dünden
+                        <span className="text-medical-success">+12%</span> {t('dashboard.fromYesterday')}
                       </p>
                     </CardContent>
                   </Card>
 
                   <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Aktif Hastalar</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t('dashboard.activePatients')}</CardTitle>
                       <Users className="h-4 w-4 text-medical-success" />
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-medical-success">183</div>
                       <p className="text-xs text-muted-foreground">
-                        <span className="text-medical-success">+5%</span> bu hafta
+                        <span className="text-medical-success">+5%</span> {t('dashboard.thisWeek')}
                       </p>
                     </CardContent>
                   </Card>
 
                   <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Toplam Raporlar</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t('dashboard.totalReports')}</CardTitle>
                       <FileText className="h-4 w-4 text-medical-warning" />
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-medical-warning">1,234</div>
                       <p className="text-xs text-muted-foreground">
-                        <span className="text-medical-success">+8%</span> bu ay
+                        <span className="text-medical-success">+8%</span> {t('dashboard.thisMonth')}
                       </p>
                     </CardContent>
                   </Card>
 
                   <Card className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Ortalama Süre</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t('dashboard.averageTime')}</CardTitle>
                       <TrendingUp className="h-4 w-4 text-purple-600" />
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-purple-600">2.4h</div>
                       <p className="text-xs text-muted-foreground">
-                        <span className="text-medical-error">-15%</span> gelişme
+                        <span className="text-medical-error">-15%</span> {t('dashboard.improvement')}
                       </p>
                     </CardContent>
                   </Card>
                 </div>
 
                 {/* Charts Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                   {/* Daily Analysis Chart */}
-                  <Card className="col-span-2">
+                  <Card className="col-span-1 lg:col-span-2">
                     <CardHeader>
-                      <CardTitle>Günlük Analiz Sayıları</CardTitle>
-                      <CardDescription>Bu haftaki günlük analiz dağılımı</CardDescription>
+                      <CardTitle className="text-base sm:text-lg">{t('dashboard.dailyAnalysisNumbers')}</CardTitle>
+                      <CardDescription className="text-sm">{t('dashboard.thisWeekDistribution')}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ChartContainer config={chartConfig} className="h-[300px]">
+                      <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px]">
                         <BarChart data={dailyAnalysisData}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
+                          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                          <YAxis tick={{ fontSize: 12 }} />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           <Bar dataKey="value" fill="var(--color-value)" className="animate-[fade-in_0.5s_ease-out]" />
                         </BarChart>
@@ -212,23 +219,24 @@ const Index = () => {
                   </Card>
 
                   {/* Analysis Types Pie Chart */}
-                  <Card>
+                  <Card className="col-span-1">
                     <CardHeader>
-                      <CardTitle>Analiz Türleri</CardTitle>
-                      <CardDescription>Bu ayki dağılım</CardDescription>
+                      <CardTitle className="text-base sm:text-lg">{t('dashboard.analysisTypes')}</CardTitle>
+                      <CardDescription className="text-sm">{t('dashboard.thisMonthDistribution')}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ChartContainer config={chartConfig} className="h-[300px]">
+                      <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px]">
                         <PieChart>
                           <ChartTooltip content={<ChartTooltipContent />} />
                           <Pie
                             data={analysisTypeData}
                             cx="50%"
                             cy="50%"
-                            outerRadius={80}
+                            outerRadius={60}
                             dataKey="value"
                             nameKey="name"
                             label={(entry) => `${entry.name}: ${entry.value}%`}
+                            labelStyle={{ fontSize: 10 }}
                           >
                             {analysisTypeData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
@@ -243,15 +251,15 @@ const Index = () => {
                 {/* Monthly Trend Chart */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Aylık Trend Analizi</CardTitle>
-                    <CardDescription>Hasta ve analiz sayılarının aylık gelişimi</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">{t('dashboard.monthlyTrendAnalysis')}</CardTitle>
+                    <CardDescription className="text-sm">{t('dashboard.monthlyDevelopment')}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px]">
                       <LineChart data={monthlyTrendData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
+                        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <Line 
                           type="monotone" 
@@ -275,8 +283,8 @@ const Index = () => {
                 {/* Patients List */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Son Hastalar</CardTitle>
-                    <CardDescription>En son kayıt olan hastalar ve analiz durumları</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">{t('dashboard.recentPatients')}</CardTitle>
+                    <CardDescription className="text-sm">{t('dashboard.recentPatientsDescription')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <PatientsList onReportSelect={() => setIsEditing(true)} />
@@ -292,11 +300,11 @@ const Index = () => {
 
               {/* Template Gallery Dialog */}
               <Dialog open={showTemplateGallery} onOpenChange={setShowTemplateGallery}>
-                <DialogContent className="sm:max-w-[700px]">
+                <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Analiz Şablonu Seçin</DialogTitle>
+                    <DialogTitle>{t('dashboard.selectAnalysisTemplate')}</DialogTitle>
                     <DialogDescription>
-                      Yeni laboratuvar analizi oluşturmak için bir şablon seçin
+                      {t('dashboard.selectTemplateDescription')}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="mt-6">

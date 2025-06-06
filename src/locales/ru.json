@@ -1,0 +1,62 @@
+
+{
+  "dashboard": {
+    "title": "Панель Лаборатории",
+    "subtitle": "Управляйте ежедневными лабораторными операциями",
+    "todayAnalyses": "Сегодняшние Анализы",
+    "activePatients": "Активные Пациенты",
+    "totalReports": "Общие Отчеты",
+    "averageTime": "Среднее Время",
+    "fromYesterday": "со вчера",
+    "thisWeek": "на этой неделе",
+    "thisMonth": "в этом месяце",
+    "improvement": "улучшение",
+    "createAnalysis": "Создать Лабораторный Анализ",
+    "newTemplate": "Новый Шаблон",
+    "settings": "Настройки",
+    "dailyAnalysisNumbers": "Ежедневные Числа Анализов",
+    "thisWeekDistribution": "Распределение ежедневных анализов на этой неделе",
+    "analysisTypes": "Типы Анализов",
+    "thisMonthDistribution": "Распределение в этом месяце",
+    "monthlyTrendAnalysis": "Анализ Месячных Трендов",
+    "monthlyDevelopment": "Месячное развитие количества пациентов и анализов",
+    "recentPatients": "Недавние Пациенты",
+    "recentPatientsDescription": "Недавно зарегистрированные пациенты и статус их анализов",
+    "selectAnalysisTemplate": "Выберите Шаблон Анализа",
+    "selectTemplateDescription": "Выберите шаблон для создания нового лабораторного анализа"
+  },
+  "days": {
+    "monday": "Пон",
+    "tuesday": "Вто",
+    "wednesday": "Сре",
+    "thursday": "Чет",
+    "friday": "Пят",
+    "saturday": "Суб",
+    "sunday": "Вос"
+  },
+  "months": {
+    "jan": "Янв",
+    "feb": "Фев",
+    "mar": "Мар",
+    "apr": "Апр",
+    "may": "Май",
+    "jun": "Июн",
+    "jul": "Июл",
+    "aug": "Авг",
+    "sep": "Сен",
+    "oct": "Окт",
+    "nov": "Ноя",
+    "dec": "Дек"
+  },
+  "analysisTypes": {
+    "bloodTest": "Анализ Крови",
+    "urineTest": "Анализ Мочи",
+    "biochemistry": "Биохимия",
+    "microbiology": "Микробиология"
+  },
+  "chartLabels": {
+    "value": "Значение",
+    "patients": "Пациенты",
+    "analyses": "Анализы"
+  }
+}

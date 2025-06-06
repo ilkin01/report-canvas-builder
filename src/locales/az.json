@@ -1,0 +1,62 @@
+
+{
+  "dashboard": {
+    "title": "Laboratoriya Dashboard",
+    "subtitle": "Gündəlik laboratoriya əməliyyatlarınızı idarə edin",
+    "todayAnalyses": "Bugünkü Analizlər",
+    "activePatients": "Aktiv Xəstələr",
+    "totalReports": "Ümumi Hesabatlar",
+    "averageTime": "Orta Müddət",
+    "fromYesterday": "dündən",
+    "thisWeek": "bu həftə",
+    "thisMonth": "bu ay",
+    "improvement": "yaxşılaşma",
+    "createAnalysis": "Laboratoriya Analizi Yarat",
+    "newTemplate": "Yeni Şablon",
+    "settings": "Ayarlar",
+    "dailyAnalysisNumbers": "Gündəlik Analiz Sayları",
+    "thisWeekDistribution": "Bu həftəki gündəlik analiz paylanması",
+    "analysisTypes": "Analiz Növləri",
+    "thisMonthDistribution": "Bu ayki paylanma",
+    "monthlyTrendAnalysis": "Aylıq Trend Analizi",
+    "monthlyDevelopment": "Xəstə və analiz saylarının aylıq inkişafı",
+    "recentPatients": "Son Xəstələr",
+    "recentPatientsDescription": "Ən son qeydiyyatdan keçən xəstələr və analiz vəziyyətləri",
+    "selectAnalysisTemplate": "Analiz Şablonu Seçin",
+    "selectTemplateDescription": "Yeni laboratoriya analizi yaratmaq üçün şablon seçin"
+  },
+  "days": {
+    "monday": "Baz",
+    "tuesday": "Çax",
+    "wednesday": "Çər",
+    "thursday": "Cax",
+    "friday": "Cüm",
+    "saturday": "Şən",
+    "sunday": "Baz"
+  },
+  "months": {
+    "jan": "Yan",
+    "feb": "Fev",
+    "mar": "Mar",
+    "apr": "Apr",
+    "may": "May",
+    "jun": "İyun",
+    "jul": "İyul",
+    "aug": "Avq",
+    "sep": "Sen",
+    "oct": "Okt",
+    "nov": "Noy",
+    "dec": "Dek"
+  },
+  "analysisTypes": {
+    "bloodTest": "Qan Analizi",
+    "urineTest": "Sidik Analizi",
+    "biochemistry": "Biokimya",
+    "microbiology": "Mikrobiologiya"
+  },
+  "chartLabels": {
+    "value": "Dəyər",
+    "patients": "Xəstələr",
+    "analyses": "Analizlər"
+  }
+}

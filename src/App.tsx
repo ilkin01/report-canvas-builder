@@ -9,6 +9,7 @@ import { store } from './redux/store';
 import Index from "./pages/Index";
 import TemplateCreator from "./pages/TemplateCreator";
 import NotFound from "./pages/NotFound";
+import './i18n/config';
 
 const queryClient = new QueryClient();
 
