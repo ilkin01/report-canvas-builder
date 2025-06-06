@@ -22,20 +22,66 @@ interface ChartElementProps {
 
 export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
   const { content } = element;
-  const { type, data } = content;
+  const { type = "bar", data } = content;
+
+  // Provide default data structure if data is missing or incomplete
+  const defaultData = {
+    labels: ["Sample 1", "Sample 2", "Sample 3"],
+    datasets: [{
+      label: "Sample Data",
+      data: [10, 20, 30],
+      backgroundColor: "rgba(14, 165, 233, 0.6)",
+      borderColor: "#0EA5E9"
+    }]
+  };
+
+  const safeData = data && data.labels && data.datasets && data.datasets.length > 0 
+    ? data 
+    : defaultData;
 
   const chartData = useMemo(() => {
-    if (!data?.labels || !data?.datasets || !data.datasets[0]?.data) {
+    if (!safeData?.labels || !safeData?.datasets || !safeData.datasets[0]?.data) {
       return [];
     }
 
-    return data.labels.map((label, index) => ({
+    return safeData.labels.map((label, index) => ({
       name: label,
-      value: data.datasets[0].data[index] || 0,
+      value: safeData.datasets[0].data[index] || 0,
     }));
-  }, [data]);
+  }, [safeData]);
+
+  const getBackgroundColor = (index?: number) => {
+    const dataset = safeData?.datasets?.[0];
+    if (!dataset) return "rgba(14, 165, 233, 0.6)";
+    
+    const bgColor = dataset.backgroundColor;
+    if (Array.isArray(bgColor)) {
+      return bgColor[index || 0] || bgColor[0] || "rgba(14, 165, 233, 0.6)";
+    }
+    return bgColor || "rgba(14, 165, 233, 0.6)";
+  };
+
+  const getBorderColor = () => {
+    const dataset = safeData?.datasets?.[0];
+    if (!dataset) return "#0EA5E9";
+    
+    const borderColor = dataset.borderColor;
+    if (Array.isArray(borderColor)) {
+      return borderColor[0] || "#0EA5E9";
+    }
+    return borderColor || "#0EA5E9";
+  };
 
   const renderChart = () => {
+    // If no valid data, show a placeholder
+    if (!chartData || chartData.length === 0) {
+      return (
+        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+          No chart data available
+        </div>
+      );
+    }
+
     switch (type) {
       case "bar":
         return (
@@ -47,11 +93,7 @@ export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
               <Tooltip />
               <Bar
                 dataKey="value"
-                fill={
-                  Array.isArray(data?.datasets[0]?.backgroundColor)
-                    ? data?.datasets[0]?.backgroundColor[0]
-                    : data?.datasets[0]?.backgroundColor || "rgba(14, 165, 233, 0.6)"
-                }
+                fill={getBackgroundColor()}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -68,11 +110,7 @@ export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke={
-                  Array.isArray(data?.datasets[0]?.borderColor)
-                    ? data?.datasets[0]?.borderColor[0]
-                    : data?.datasets[0]?.borderColor || "#0EA5E9"
-                }
+                stroke={getBorderColor()}
                 strokeWidth={2}
               />
             </LineChart>
@@ -96,11 +134,7 @@ export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
                 {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={
-                      Array.isArray(data?.datasets[0]?.backgroundColor)
-                        ? data?.datasets[0]?.backgroundColor[index % data.datasets[0].backgroundColor.length]
-                        : `hsl(${index * 45 % 360}, 70%, 60%)`
-                    }
+                    fill={getBackgroundColor(index) || `hsl(${index * 45 % 360}, 70%, 60%)`}
                   />
                 ))}
               </Pie>
