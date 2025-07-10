@@ -2,11 +2,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import reportsReducer from './slices/reportsSlice';
 import templatesReducer from './slices/templatesSlice';
+import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
     reports: reportsReducer,
     templates: templatesReducer,
+    auth: authReducer,
   },
   middleware: (getDefaultMiddleware) => 
     getDefaultMiddleware({

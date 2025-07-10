@@ -504,6 +504,19 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ...element,
       id: uuidv4(),
     };
+    
+    // Console log for Text, Chart, and Table elements
+    if (element.type === "text" || element.type === "chart" || element.type === "table") {
+      console.log(`🎯 Element Added - Type: ${element.type.toUpperCase()}`, {
+        id: newElementWithId.id,
+        type: element.type,
+        position: { x: element.x, y: element.y },
+        size: { width: element.width, height: element.height },
+        content: element.content,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     dispatch({ type: "ADD_ELEMENT", payload: { element: newElementWithId as ElementData, pageIndex } });
   }, []);
 

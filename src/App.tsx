@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
+import { AuthGuard } from './components/AuthGuard';
+import Login from "./pages/Login";
 import Index from "./pages/Index";
 import TemplateCreator from "./pages/TemplateCreator";
 import NotFound from "./pages/NotFound";
@@ -21,8 +23,21 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/template-creator" element={<TemplateCreator />} />
+            <Route path="/login" element={
+              <AuthGuard requireAuth={false}>
+                <Login />
+              </AuthGuard>
+            } />
+            <Route path="/" element={
+              <AuthGuard requireAuth={true}>
+                <Index />
+              </AuthGuard>
+            } />
+            <Route path="/template-creator" element={
+              <AuthGuard requireAuth={true}>
+                <TemplateCreator />
+              </AuthGuard>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

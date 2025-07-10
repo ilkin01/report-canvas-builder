@@ -2,18 +2,56 @@ import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TemplateGallery } from "../editor/TemplateGallery";
-import { ArrowDown, Redo, Square, Undo } from "lucide-react";
+import { ArrowDown, Redo, Square, Undo, User, LogOut } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAppSelector, useAppDispatch } from "@/redux/hooks";
+import { logout } from "@/redux/slices/authSlice";
+import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const AppHeader = () => {
   const { undo, redo, canvasState, getActiveReport, setCurrentPage } = useEditor();
   const [newTemplateDialogOpen, setNewTemplateDialogOpen] = useState(false);
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   
   const activeReport = getActiveReport();
+  const { user } = useAppSelector((state) => state.auth);
+
+  // Logout funksiyası
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+    toast.success("Uğurla çıxış etdiniz");
+  };
+
+  // User adının baş hərflərini al
+  const getUserInitials = () => {
+    if (!user) return "U";
+    const firstName = user.firstName || "";
+    const lastName = user.lastName || "";
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  // User adını al
+  const getUserName = () => {
+    if (!user) return "İstifadəçi";
+    const firstName = user.firstName || "";
+    const lastName = user.lastName || "";
+    return `${firstName} ${lastName}`.trim() || "İstifadəçi";
+  };
 
   // Generate and download PDF with all pages
   const handleExportPdf = async () => {
@@ -215,6 +253,43 @@ export const AppHeader = () => {
         >
           <ArrowDown className="h-4 w-4 mr-1" /> Excel
         </Button>
+
+        <div className="mx-2 h-6 border-l border-gray-200" />
+        
+        {/* User Profile Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-10 w-auto px-3 rounded-full">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.profileImage} alt={getUserName()} />
+                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-medium text-gray-900">{getUserName()}</p>
+                  <p className="text-xs text-gray-500">{user?.role || "İstifadəçi"}</p>
+                </div>
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{getUserName()}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user?.email || "email@example.com"}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Çıxış et</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
