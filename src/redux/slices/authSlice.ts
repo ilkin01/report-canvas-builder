@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { apiService } from '@/services/apiService';
+import type { RootState } from '../store';
 
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
@@ -12,29 +13,25 @@ export const loginUser = createAsyncThunk(
         useToken: false,
       });
 
-      // Token varsa, yadda saxla
       if (response.token) {
         localStorage.setItem('authToken', response.token);
-        
-        // Login uğurlu olduqdan sonra user profilini al
+        dispatch(setToken(response.token)); // <-- redux state-ə yaz
+        localStorage.setItem('auth_role', 'HospitalLab');
         try {
           const userResponse = await apiService.sendRequest({
             endpoint: '/api/HospitalLab/me',
             method: 'GET',
             useToken: true,
+            token: response.token, // <-- token-i birbaşa ötür
           });
 
-          // API response-una görə user məlumatlarını map et
           const userData = {
-            id: userResponse.id,
+            name: userResponse.name,
+            surname: userResponse.surname,
             email: userResponse.email,
-            firstName: userResponse.name,
-            lastName: userResponse.surname,
-            role: userResponse.role,
-            profileImage: userResponse.avatarUrl,
-            userName: userResponse.userName,
+            avatarUrl: userResponse.avatarUrl,
             phoneNumber: userResponse.phoneNumber,
-            hospitalId: userResponse.hospitalId,
+            role: 'HospitalLab',
           };
 
           return {
@@ -42,51 +39,47 @@ export const loginUser = createAsyncThunk(
             user: userData
           };
         } catch (profileError: any) {
-          // Profil alınmasa da login uğurlu sayılır
-          console.warn('Failed to fetch user profile:', profileError);
           return {
             token: response.token,
             user: null
           };
         }
       }
-
       return {
         token: response.token,
         user: null
       };
     } catch (error: any) {
+      localStorage.setItem('auth_role', '');
       return rejectWithValue(error.message || 'Login failed');
     }
   }
 );
 
-// User məlumatlarını al
 export const fetchUserProfile = createAsyncThunk(
   'auth/fetchUserProfile',
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
+      const state = getState() as RootState;
+      const token = state.auth.token;
       const response = await apiService.sendRequest({
         endpoint: '/api/HospitalLab/me',
         method: 'GET',
         useToken: true,
+        token, // <-- redux-dan token
       });
-
-      // API response-una görə user məlumatlarını map et
+      const role = localStorage.getItem('auth_role') || 'HospitalLab';
       const userData = {
-        id: response.id,
+        name: response.name,
+        surname: response.surname,
         email: response.email,
-        firstName: response.name,
-        lastName: response.surname,
-        role: response.role,
-        profileImage: response.avatarUrl,
-        userName: response.userName,
+        avatarUrl: response.avatarUrl,
         phoneNumber: response.phoneNumber,
-        hospitalId: response.hospitalId,
+        role,
       };
-
       return userData;
     } catch (error: any) {
+      localStorage.setItem('auth_role', '');
       return rejectWithValue(error.message || 'Failed to fetch user profile');
     }
   }
@@ -94,15 +87,12 @@ export const fetchUserProfile = createAsyncThunk(
 
 interface AuthState {
   user: {
-    id: string;
+    name: string;
+    surname: string;
     email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    profileImage: string | null;
-    userName: string;
+    avatarUrl: string | null;
     phoneNumber: string;
-    hospitalId: string;
+    role: string;
   } | null;
   token: string | null;
   isAuthenticated: boolean;
@@ -149,6 +139,10 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.token = action.payload.token;
         state.error = null;
+        // Əgər user məlumatı login cavabında yoxdursa, user null olaraq qalır
+        if (action.payload.user) {
+          state.user = action.payload.user;
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;

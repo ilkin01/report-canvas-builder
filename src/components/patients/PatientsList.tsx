@@ -1,19 +1,145 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Edit, Trash, PenTool } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { fetchAllReports, fetchReportById, viewReport } from "@/redux/slices/reportsSlice";
 import { toast } from "sonner";
 import { ReportDocument } from "@/types/editor";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 
 interface PatientsListProps {
   onReportSelect?: () => void;
+  reports?: ReportDocument[];
 }
 
-export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) => {
+export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, reports: externalReports }) => {
   const dispatch = useAppDispatch();
-  const { reports, loading, error } = useAppSelector(state => state.reports);
+  const { reports: reduxReports, loading, error } = useAppSelector(state => state.reports);
+  // For local state update
+  const [localReports, setLocalReports] = useState<ReportDocument[]>([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (externalReports) {
+      setLocalReports(externalReports);
+    } else {
+      setLocalReports(reduxReports);
+    }
+  }, [externalReports, reduxReports]);
+
+  const reports = localReports;
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editingReportId, setEditingReportId] = useState<string | null>(null);
+  // New state for selects
+  const [patients, setPatients] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Fetch patients and templates when modal opens
+  useEffect(() => {
+    if (showEditModal) {
+      // Fetch templates
+      setTemplatesLoading(true);
+      import("@/services/apiService").then(({ apiService }) => {
+        apiService.sendRequest({
+          endpoint: "/api/ReportTemplate/GetAllReportTemplates",
+          method: "GET"
+        }).then((data) => {
+          setTemplates(data || []);
+        }).catch(() => setTemplates([])).finally(() => setTemplatesLoading(false));
+      });
+      // Fetch patients (first page, empty search)
+      setPatientsLoading(true);
+      import("@/services/apiService").then(({ apiService }) => {
+        apiService.sendRequest({
+          endpoint: "/api/HospitalLab/SearchPatientsForLab",
+          method: "POST",
+          body: { name: "", pageIndex: 0 }
+        }).then((res) => {
+          setPatients(res.users || []);
+        }).catch(() => setPatients([])).finally(() => setPatientsLoading(false));
+      });
+    }
+  }, [showEditModal]);
+
+  // Pre-select current patient/template when modal opens
+  useEffect(() => {
+    if (showEditModal && editingReportId) {
+      const editingReport = reports.find(r => r.id === editingReportId);
+      setSelectedPatientId(editingReport?.patientId ? String(editingReport.patientId) : null);
+      setSelectedTemplateId(editingReport?.templateId ? String(editingReport.templateId) : null);
+    }
+  }, [showEditModal, editingReportId, reports]);
+
+  // Fetch patients with search
+  useEffect(() => {
+    if (showEditModal) {
+      setPatientsLoading(true);
+      import("@/services/apiService").then(({ apiService }) => {
+        apiService.sendRequest({
+          endpoint: "/api/HospitalLab/SearchPatientsForLab",
+          method: "POST",
+          body: { name: patientSearch, pageIndex: 0, pageSize: 10 }
+        }).then((res) => {
+          setPatients(res.users || []);
+        }).catch(() => setPatients([])).finally(() => setPatientsLoading(false));
+      });
+    }
+  }, [showEditModal, patientSearch]);
+
+  const handleOpenEditModal = (report: ReportDocument) => {
+    setEditName(report.name);
+    setEditingReportId(report.id);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingReportId || !selectedPatientId || !selectedTemplateId) return;
+    setSaving(true);
+    try {
+      // Find selected patient info
+      const selectedPatient = patients.find((p: any) => String(p.id) === String(selectedPatientId));
+      const patientName = selectedPatient ? `${selectedPatient.name || ''} ${selectedPatient.surname || ''} ${selectedPatient.fatherName || ''}`.trim() : '';
+      // Prepare payload
+      const payload = {
+        name: editName,
+        patientId: selectedPatientId,
+        patientName,
+        templateId: selectedTemplateId,
+        type: 1,
+        status: 1
+      };
+      await import("@/services/apiService").then(({ apiService }) =>
+        apiService.sendRequest({
+          endpoint: `/api/Report/UpdateReport/${editingReportId}`,
+          method: "PUT",
+          body: payload
+        })
+      );
+      toast.success("Report updated successfully");
+      setShowEditModal(false);
+      // Update local report list
+      setLocalReports(prev => prev.map(r => r.id === editingReportId ? { ...r, ...payload } : r));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update report");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // useEffect(() => { // Commented out as it might be redundant if called in Index.tsx
   //   // dispatch(fetchAllReports()); 
@@ -50,6 +176,41 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
     }
   };
 
+  // Helper to get patient and template info for modal
+  const getPatientInfo = (report: ReportDocument) => {
+    const name = report.patientName || '';
+    const surname = report.patientSurname || '';
+    const fatherName = report.patientFatherName || '';
+    return `${name} ${surname} ${fatherName}`.trim();
+  };
+  const getTemplateName = (report: ReportDocument) => {
+    if (!report.templateId) return '';
+    const template = templates.find((t: any) => String(t.id) === String(report.templateId));
+    return template ? template.name : report.templateId;
+  };
+
+  // Find the editing report for modal display
+  const editingReport = reports.find(r => r.id === editingReportId);
+
+  const handleDeleteReport = async (reportId: string) => {
+    setDeletingId(reportId);
+    try {
+      await import("@/services/apiService").then(({ apiService }) =>
+        apiService.sendRequest({
+          endpoint: `/api/Report/DeleteReport/${reportId}`,
+          method: "DELETE"
+        })
+      );
+      toast.success("Report deleted successfully");
+      // Remove from local report list
+      setLocalReports(prev => prev.filter(r => r.id !== reportId));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete report");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -71,23 +232,55 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
             <TableHeader>
               <TableRow>
                 <TableHead>Patient Name</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead>Content Preview</TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead>Patient Name</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {reports.map((report) => (
-                <TableRow 
-                  key={report.id} 
-                  className="cursor-pointer hover:bg-gray-100" 
-                  onClick={() => handleReportClick(report.id)}
-                >
+                <TableRow key={report.id}>
                   <TableCell className="font-medium">{report.name}</TableCell>
                   <TableCell>
-                    {formatDistanceToNow(new Date(report.updatedAt), { addSuffix: true })}
+                    {report.createdAt ? new Date(report.createdAt).toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                   </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {getDocumentExcerpt(report)}
+                  <TableCell className="max-w-xs truncate">{report.patientName ? report.patientName : 'Pasiyent Secilmeyib'}</TableCell>
+                  <TableCell className="flex gap-2 justify-end">
+                    <Button variant="outline" size="sm" title="Change Name" onClick={() => handleOpenEditModal(report)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      title="Update"
+                      onClick={async () => {
+                        try {
+                          // 1. GET report data
+                          await import("@/services/apiService").then(async ({ apiService }) => {
+                            await apiService.sendRequest({
+                              endpoint: `/api/Report/GetReportById/${report.id}`,
+                              method: "GET"
+                            });
+                          });
+                          // 2. Show warning and navigate
+                          toast.warning("Bu, mövcud hesabatın yenilənməsi (update) səhifəsidir.");
+                          navigate(`/report-updater?reportId=${report.id}`);
+                        } catch (err) {
+                          toast.error("Report məlumatı yüklənə bilmədi");
+                        }
+                      }}
+                    >
+                      <PenTool className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      title="Delete"
+                      onClick={() => handleDeleteReport(report.id)}
+                      disabled={deletingId === report.id}
+                    >
+                      {deletingId === report.id ? "..." : <Trash className="h-4 w-4" />}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -95,6 +288,84 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect }) =>
           </Table>
         )}
       </CardContent>
+      {/* Edit Name Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Report</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Report Name</label>
+              <Input value={editName} onChange={e => setEditName(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Search Patient</label>
+              <Input
+                placeholder="Pasiyent axtar..."
+                value={patientSearch}
+                onChange={e => setPatientSearch(e.target.value)}
+                className="mb-2"
+              />
+              <div className="border rounded bg-white overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ad</TableHead>
+                      <TableHead>Soyad</TableHead>
+                      <TableHead>Ata adı</TableHead>
+                      <TableHead>FIN</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {patientsLoading ? (
+                      <TableRow><TableCell colSpan={4}>Yüklənir...</TableCell></TableRow>
+                    ) : patients.length === 0 ? (
+                      <TableRow><TableCell colSpan={4}>Heç bir pasiyent tapılmadı</TableCell></TableRow>
+                    ) : (
+                      patients.map((p: any) => (
+                        <TableRow
+                          key={p.id}
+                          className={selectedPatientId === String(p.id) ? "bg-blue-50" : "cursor-pointer hover:bg-gray-100"}
+                          onClick={() => setSelectedPatientId(String(p.id))}
+                          style={{ fontWeight: selectedPatientId === String(p.id) ? 'bold' : 'normal' }}
+                        >
+                          <TableCell>{p.name}</TableCell>
+                          <TableCell>{p.surname}</TableCell>
+                          <TableCell>{p.fatherName}</TableCell>
+                          <TableCell><b>{p.finCode || ''}</b></TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Template</label>
+              <Select
+                value={selectedTemplateId || (templates.length > 0 ? String(templates[0].id) : undefined)}
+                onValueChange={setSelectedTemplateId}
+                disabled={templatesLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={templatesLoading ? 'Loading...' : 'Select template'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((t: any) => (
+                    <SelectItem key={t.id} value={String(t.id)}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSaveEdit} disabled={saving}>{saving ? "Yadda saxlanır..." : "Yadda saxla"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

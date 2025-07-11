@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff, Mail, Lock, TestTube } from "lucide-react";
 import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { loginUser, clearError } from "@/redux/slices/authSlice";
+import { loginUser, clearError, fetchUserProfile } from "@/redux/slices/authSlice";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -25,6 +25,13 @@ const Login = () => {
       dispatch(clearError());
     }
   }, [error, dispatch]);
+
+  // Login uğurlu olduqda və user məlumatları yoxdursa, user profilini yüklə
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      dispatch(fetchUserProfile());
+    }
+  }, [isAuthenticated, user, dispatch]);
 
   // Login uğurlu olduqda və user məlumatları varsa ana səhifəyə yönləndir
   useEffect(() => {

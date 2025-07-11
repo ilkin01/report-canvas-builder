@@ -61,8 +61,8 @@ export const TableElement: React.FC<TableElementProps> = ({ element }) => {
     }
   }, [headers, rows, content.rowHighlights, content.cellStatus, columnTypes]);
 
-  const updateTableData = (updates: any) => {
-    updateElement(element.id, {
+  const updateTableData = async (updates: any) => {
+    await updateElement(element.id, {
       content: {
         ...element.content,
         ...updates,

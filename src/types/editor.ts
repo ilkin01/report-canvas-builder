@@ -1,14 +1,14 @@
 
-export type ElementType = 
-  | 'text' 
-  | 'chart' 
-  | 'shape' 
-  | 'comment' 
-  | 'signature' 
+export type ElementType =
+  | 'text'
+  | 'chart'
+  | 'shape'
+  | 'comment'
+  | 'signature'
   | 'table';
 
 export type ElementData = {
-  type: ElementType;
+  type: ElementType | string; // mappingdən sonra həmişə string olacaq
   id: string;
   x: number;
   y: number;
@@ -17,6 +17,7 @@ export type ElementData = {
   content: any;
   style?: Record<string, any>;
   isSelected?: boolean;
+  backendId?: number; // Original backend ID for API calls
 };
 
 export type ChartData = {
@@ -84,6 +85,7 @@ export type Page = {
   width?: number;
   height?: number;
   appointmentId?: string;
+  backendId?: number; // Original backend ID for API calls
 };
 
 export interface CanvasState {
@@ -97,12 +99,17 @@ export interface CanvasState {
 }
 
 export type Template = {
-  id: string;
+  id: number;
   name: string;
-  thumbnail?: string;
-  elements: ElementData[];
-  pages?: Page[];
-  category: 'system' | 'custom';
+  hospitalId?: string;
+  createdAt?: string;
+  updatedAt?: string | null;
+  pages?: Array<{
+    id: number;
+    order: number;
+    reportTemplateId: number;
+    elements: any[];
+  }>;
 };
 
 export type ReportDocument = {
@@ -110,6 +117,9 @@ export type ReportDocument = {
   name: string;
   templateId: string;
   patientId?: string;
+  patientName?: string;
+  patientSurname?: string;
+  patientFatherName?: string;
   appointmentId?: string;
   pages: Page[];
   createdAt: string;

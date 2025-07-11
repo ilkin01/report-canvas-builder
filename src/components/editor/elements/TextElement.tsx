@@ -40,10 +40,10 @@ export const TextElement: React.FC<TextElementProps> = ({ element }) => {
     setIsEditing(true);
   };
 
-  const handleBlur = () => {
+  const handleBlur = async () => {
     setIsEditing(false);
     if (editText !== text) {
-      updateElement(element.id, {
+      await updateElement(element.id, {
         content: {
           ...element.content,
           text: editText

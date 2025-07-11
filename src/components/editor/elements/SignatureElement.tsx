@@ -63,7 +63,7 @@ export const SignatureElement: React.FC<SignatureElementProps> = ({ element }) =
     ctx.stroke();
   };
   
-  const endDrawing = () => {
+  const endDrawing = async () => {
     setIsDrawing(false);
     
     const canvas = canvasRef.current;
@@ -71,7 +71,7 @@ export const SignatureElement: React.FC<SignatureElementProps> = ({ element }) =
     
     // Save the signature as a data URL
     const dataURL = canvas.toDataURL("image/png");
-    updateElement(element.id, {
+    await updateElement(element.id, {
       content: {
         ...element.content,
         signature: dataURL,
@@ -79,7 +79,7 @@ export const SignatureElement: React.FC<SignatureElementProps> = ({ element }) =
     });
   };
   
-  const clearSignature = () => {
+  const clearSignature = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -88,7 +88,7 @@ export const SignatureElement: React.FC<SignatureElementProps> = ({ element }) =
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    updateElement(element.id, {
+    await updateElement(element.id, {
       content: {
         ...element.content,
         signature: "",

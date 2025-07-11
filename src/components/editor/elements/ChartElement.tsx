@@ -22,7 +22,9 @@ interface ChartElementProps {
 
 export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
   const { content } = element;
-  const { type = "bar", data } = content;
+  const data = content?.data;
+  // Fix: robust chart type detection for backend data
+  const type = ["bar", "line", "pie"].includes(content?.type) ? content.type : "bar";
 
   // Provide default data structure if data is missing or incomplete
   const defaultData = {
@@ -35,20 +37,43 @@ export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
     }]
   };
 
-  const safeData = data && data.labels && data.datasets && data.datasets.length > 0 
-    ? data 
-    : defaultData;
+  // Accept both backend (array of objects) and frontend (labels/datasets) chart data formats
+  const normalizeData = (data: any) => {
+    console.log('ChartElement normalizeData input:', data);
+    // Backend format: [{ name: 'A', value: 100 }, ...]
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && 'name' in data[0] && 'value' in data[0]) {
+      return {
+        labels: data.map((d: any) => d.name),
+        datasets: [{
+          label: content.title || 'Chart',
+          data: data.map((d: any) => d.value),
+          backgroundColor: 'rgba(14, 165, 233, 0.6)',
+          borderColor: '#0EA5E9',
+        }],
+      };
+    }
+    // Frontend format: { labels, datasets }
+    if (data && data.labels && data.datasets) {
+      return data;
+    }
+    return defaultData;
+  };
+
+  const safeData = normalizeData(data);
 
   const chartData = useMemo(() => {
     if (!safeData?.labels || !safeData?.datasets || !safeData.datasets[0]?.data) {
       return [];
     }
-
+    // Əgər backend array formatı gəlirsə, birbaşa onu qaytar
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && 'name' in data[0] && 'value' in data[0]) {
+      return data;
+    }
     return safeData.labels.map((label, index) => ({
       name: label,
       value: safeData.datasets[0].data[index] || 0,
     }));
-  }, [safeData]);
+  }, [safeData, data]);
 
   const getBackgroundColor = (index?: number) => {
     const dataset = safeData?.datasets?.[0];
@@ -73,6 +98,7 @@ export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
   };
 
   const renderChart = () => {
+    console.log('ChartElement renderChart chartData:', chartData);
     // If no valid data, show a placeholder
     if (!chartData || chartData.length === 0) {
       return (
@@ -98,7 +124,6 @@ export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
             </BarChart>
           </ResponsiveContainer>
         );
-        
       case "line":
         return (
           <ResponsiveContainer width="100%" height="100%">
@@ -116,7 +141,6 @@ export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
             </LineChart>
           </ResponsiveContainer>
         );
-        
       case "pie":
         return (
           <ResponsiveContainer width="100%" height="100%">
@@ -141,14 +165,13 @@ export const ChartElement: React.FC<ChartElementProps> = ({ element }) => {
             </PieChart>
           </ResponsiveContainer>
         );
-        
       default:
         return <div className="w-full h-full flex items-center justify-center">Invalid chart type</div>;
     }
   };
 
   return (
-    <div className="w-full h-full overflow-hidden">
+    <div className="w-full h-full overflow-hidden" style={{ minHeight: 180, minWidth: 120 }}>
       {renderChart()}
     </div>
   );

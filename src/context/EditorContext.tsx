@@ -1,11 +1,13 @@
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from "react";
 import { CanvasState, ElementData, Page, ReportDocument } from "@/types/editor";
 import { v4 as uuidv4 } from "uuid";
 import { getTemplateById } from "@/lib/templates";
 import { toast } from "sonner";
 import { useAppDispatch } from "@/redux/hooks";
 import { updateReportPages } from "@/redux/slices/reportsSlice";
+import { apiService } from "@/services/apiService";
+import { useSearchParams } from "react-router-dom";
 
 // A4 dimensions (in pixels at 72 DPI)
 const A4_WIDTH_PX = 595;
@@ -22,7 +24,7 @@ type EditorAction =
   | { type: "UNDO" }
   | { type: "REDO" }
   | { type: "LOAD_REPORT_DATA"; payload: { report: ReportDocument | null } } 
-  | { type: "ADD_PAGE"; payload: { name: string } }
+  | { type: "ADD_PAGE"; payload: { name: string; backendId?: number } }
   | { type: "REMOVE_PAGE"; payload: { pageIndex: number } }
   | { type: "SET_CURRENT_PAGE"; payload: { pageIndex: number } }
   | { type: "RENAME_PAGE"; payload: { pageIndex: number; name: string } }
@@ -31,21 +33,23 @@ type EditorAction =
 interface EditorContextType {
   canvasState: CanvasState;
   dispatch: React.Dispatch<EditorAction>;
-  addElement: (element: Omit<ElementData, "id">, pageIndex?: number) => void;
-  updateElement: (id: string, updates: Partial<ElementData>, pageIndex?: number) => void;
-  deleteElement: (id: string, pageIndex?: number) => void;
+  addElement: (element: Omit<ElementData, "id">, pageIndex?: number) => Promise<void>;
+  updateElement: (id: string, updates: Partial<ElementData>, pageIndex?: number) => Promise<void>;
+  deleteElement: (id: string, pageIndex?: number) => Promise<void>;
   selectElement: (id: string) => void;
   clearSelection: () => void;
   loadTemplate: (templateId: string) => void; 
-  saveCanvas: () => void;
+  saveCanvas: () => Promise<void>;
   undo: () => void;
   redo: () => void;
   setActiveReport: (report: ReportDocument | null) => void; 
   getActiveReport: () => ReportDocument | null; 
-  addPage: (name: string) => void;
-  removePage: (pageIndex: number) => void;
+  addPage: (name: string) => Promise<void>;
+  removePage: (pageIndex: number) => Promise<void>;
   setCurrentPage: (pageIndex: number) => void;
   renamePage: (pageIndex: number, name: string) => void;
+  deletedPages: number[];
+  deletedElements: number[];
 }
 
 const initialCanvasState: CanvasState = {
@@ -146,7 +150,7 @@ const editorReducer = (
           break;
         }
         case "ADD_PAGE": {
-          const { name } = action.payload;
+          const { name, backendId } = action.payload;
           const currentPageForSize = state.canvasState.pages[state.canvasState.currentPageIndex];
           const newPage: Page = {
             id: uuidv4(),
@@ -155,6 +159,9 @@ const editorReducer = (
             width: currentPageForSize?.width || A4_WIDTH_PX, // Inherit or default to A4
             height: currentPageForSize?.height || A4_HEIGHT_PX // Inherit or default to A4
           };
+          if (backendId) {
+            newPage.backendId = backendId;
+          }
           updatedPages = [...state.canvasState.pages, newPage];
           break;
         }
@@ -262,7 +269,9 @@ const editorReducer = (
       const newPages = [{
         id: uuidv4(),
         name: "Page 1", // Or template.name if available
-        elements: JSON.parse(JSON.stringify(template.elements)),
+        elements: template.pages && template.pages.length > 0 
+          ? template.pages[0].elements || []
+          : [],
         width: A4_WIDTH_PX, // Use A4 default
         height: A4_HEIGHT_PX // Use A4 default
       }];
@@ -277,7 +286,7 @@ const editorReducer = (
       
       const updatedOpenReports = state.openReports.map(report =>
         report.id === state.activeReportId
-          ? { ...report, pages: newPages, templateId: template.id, updatedAt: new Date().toISOString() }
+          ? { ...report, pages: newPages, templateId: String(template.id), updatedAt: new Date().toISOString() }
           : report
       );
 
@@ -369,13 +378,26 @@ const editorReducer = (
     case "LOAD_REPORT_DATA": {
       const { report } = action.payload;
       if (report) {
-        const reportPagesWithDefaults = report.pages.map(p => ({
-          ...p,
-          width: p.width || A4_WIDTH_PX, // Default to A4
-          height: p.height || A4_HEIGHT_PX, // Default to A4
+        // Universal mapping tətbiq et
+        const mappedPages = report.pages.map(page => ({
+          ...page,
+          elements: page.elements.map(element => ({
+            ...element,
+            type: mapElementType(element.type),
+            content:
+              mapElementType(element.type) === 'chart'
+                ? normalizeChartContent(element.content)
+                : mapElementType(element.type) === 'text'
+                  ? (element.content && typeof element.content.text === 'string'
+                      ? element.content
+                      : { text: '' })
+                  : element.content,
+            width: element.width && element.width >= 120 ? element.width : 120,
+            height: element.height && element.height >= 180 ? element.height : 180,
+          }))
         }));
         
-        const reportPagesString = JSON.stringify(reportPagesWithDefaults);
+        const reportPagesString = JSON.stringify(mappedPages);
 
         if (state.activeReportId === report.id && 
             JSON.stringify(state.canvasState.pages) === reportPagesString) {
@@ -385,7 +407,7 @@ const editorReducer = (
           let reportNeedsUpdateInCache = true;
           if (existingReportIndex > -1) {
              const cachedReportCopy = JSON.parse(JSON.stringify(state.openReports[existingReportIndex]));
-             const incomingReportWithDefaultPages = {...report, pages: reportPagesWithDefaults};
+             const incomingReportWithDefaultPages = {...report, pages: mappedPages};
              if (JSON.stringify(cachedReportCopy) === JSON.stringify(incomingReportWithDefaultPages)) {
                 reportNeedsUpdateInCache = false;
              }
@@ -394,7 +416,7 @@ const editorReducer = (
           if (reportNeedsUpdateInCache) {
             console.log(`EditorContext: LOAD_REPORT_DATA for report ${report.id}. Updating openReports cache only (metadata or defaults).`);
             let updatedOpenReports;
-            const reportToCache = {...report, pages: reportPagesWithDefaults}; 
+            const reportToCache = {...report, pages: mappedPages}; 
             if (existingReportIndex > -1) {
               updatedOpenReports = [...state.openReports];
               updatedOpenReports[existingReportIndex] = JSON.parse(JSON.stringify(reportToCache));
@@ -412,7 +434,7 @@ const editorReducer = (
         console.log(`EditorContext: LOAD_REPORT_DATA for report ${report.id}. Updating canvasState and openReports cache.`);
         const existingReportIndex = state.openReports.findIndex(r => r.id === report.id);
         let updatedOpenReports;
-        const reportToCache = {...report, pages: reportPagesWithDefaults};
+        const reportToCache = {...report, pages: mappedPages};
 
         if (existingReportIndex > -1) {
           updatedOpenReports = [...state.openReports];
@@ -426,7 +448,7 @@ const editorReducer = (
           activeReportId: report.id,
           canvasState: {
             ...initialCanvasState, 
-            pages: reportPagesWithDefaults, 
+            pages: mappedPages, 
             currentPageIndex: 0, 
             selectedElementIds: [],
           },
@@ -460,6 +482,10 @@ const editorReducer = (
 export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(editorReducer, initialEditorReducerState);
   const reduxDispatch = useAppDispatch();
+  const [searchParams] = useSearchParams();
+  const templateId = searchParams.get('templateId');
+  const [deletedPages, setDeletedPages] = useState<number[]>([]);
+  const [deletedElements, setDeletedElements] = useState<number[]>([]);
 
   useEffect(() => {
     if (state.activeReportId && state.canvasState.pages) {
@@ -499,17 +525,27 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => clearInterval(autoSaveInterval);
   }, [state.activeReportId, state.canvasState.pages, state.openReports, reduxDispatch]);
 
-  const addElement = useCallback((element: Omit<ElementData, "id">, pageIndex?: number) => {
+  const addPage = useCallback(async (name: string): Promise<void> => {
+    const pageName = name || `Page ${state.canvasState.pages.length + 1}`;
+    dispatch({ type: "ADD_PAGE", payload: { name: pageName } });
+  }, [state.canvasState.pages.length]);
+
+  const addElement = useCallback(async (element: Omit<ElementData, "id">, pageIndex?: number): Promise<void> => {
+    // Yalnız 'text', 'chart', 'table' üçün type ver, əks halda 'text' olsun
+    const allowedTypes = ['text', 'chart', 'table'];
+    const safeType = allowedTypes.includes(String(element.type)) ? String(element.type) : 'text';
     const newElementWithId = {
       ...element,
+      type: safeType,
       id: uuidv4(),
     };
     
-    // Console log for Text, Chart, and Table elements
-    if (element.type === "text" || element.type === "chart" || element.type === "table") {
-      console.log(`🎯 Element Added - Type: ${element.type.toUpperCase()}`, {
+    // Console log üçün də type mapping göstər:
+    if (safeType === "text" || safeType === "chart" || safeType === "table") {
+      console.log(`🎯 Element Added - Type: ${safeType.toUpperCase()} (backend type: ${getBackendType(safeType)})`, {
         id: newElementWithId.id,
-        type: element.type,
+        type: safeType,
+        backendType: getBackendType(safeType),
         position: { x: element.x, y: element.y },
         size: { width: element.width, height: element.height },
         content: element.content,
@@ -517,24 +553,155 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     }
     
+    // If we're editing a template, create template element
+    if (templateId) {
+      try {
+        const backendType = getBackendType(safeType);
+        const body = {
+          type: backendType,
+          x: element.x,
+          y: element.y,
+          width: element.width,
+          height: element.height,
+          content: element.content,
+          pageId: parseInt(templateId)
+        };
+        const res = await apiService.sendRequest({
+          endpoint: "/api/ReportTemplateElement/CreateReportTemplateElement",
+          method: "POST",
+          body
+        });
+        const newBackendId = res?.id || res?.elementId || res?.data?.id;
+        if (newBackendId) {
+          newElementWithId.backendId = newBackendId;
+          console.log(`✅ Template element created with backendId: ${newBackendId}`);
+        }
+      } catch (error: any) {
+        console.error("Failed to create template element:", error);
+        // Continue with local element creation even if backend fails
+      }
+    }
+    // If we're editing a report, create report element
+    else if (state.activeReportId) {
+      try {
+        const currentPage = state.canvasState.pages[pageIndex || state.canvasState.currentPageIndex];
+        if (currentPage && currentPage.backendId) {
+          let typeId = 0;
+          if (safeType === 'text') typeId = 0;
+          else if (safeType === 'chart') typeId = 1;
+          else if (safeType === 'table') typeId = 2;
+          
+          const body = {
+            type: typeId,
+            x: element.x,
+            y: element.y,
+            width: element.width,
+            height: element.height,
+            content: element.content,
+            reportPageId: currentPage.backendId
+          };
+          const res = await apiService.sendRequest({
+            endpoint: "/api/ReportElement/CreateReportElement",
+            method: "POST",
+            body
+          });
+          const newBackendId = res?.id || res?.reportElementId || res?.data?.id;
+          if (newBackendId) {
+            newElementWithId.backendId = newBackendId;
+            console.log(`✅ Report element created with backendId: ${newBackendId}`);
+          }
+        }
+      } catch (error: any) {
+        console.error("Failed to create report element:", error);
+        // Continue with local element creation even if backend fails
+      }
+    }
+    
     dispatch({ type: "ADD_ELEMENT", payload: { element: newElementWithId as ElementData, pageIndex } });
-  }, []);
+  }, [templateId, state.activeReportId, state.canvasState.pages, state.canvasState.currentPageIndex]);
 
-  const updateElement = useCallback((id: string, updates: Partial<ElementData>, pageIndex?: number) => {
+  const updateElement = useCallback(async (id: string, updates: Partial<ElementData>, pageIndex?: number): Promise<void> => {
     dispatch({ type: "UPDATE_ELEMENT", payload: { id, updates, pageIndex } });
-  }, []);
-
-  const deleteElement = useCallback((id: string, pageIndex?: number) => {
-    if (!id) {
-      toast.error("Cannot delete element: No element ID provided");
+    
+    const currentPage = state.canvasState.pages[pageIndex || state.canvasState.currentPageIndex];
+    const element = currentPage?.elements.find(el => el.id === id);
+    
+    if (!element) {
+      console.warn("Element not found for update:", id);
       return;
     }
-    if (!state.activeReportId) {
-      toast.error("Cannot delete element: No active report loaded in editor");
-      return;
+    
+    // If we're editing a template, update template element
+    if (templateId) {
+      try {
+        const backendType = getBackendType(mapElementType(element.type));
+        const body = {
+          type: backendType,
+          x: element.x,
+          y: element.y,
+          width: element.width,
+          height: element.height,
+          content: element.content,
+          pageId: parseInt(templateId)
+        };
+        await apiService.sendRequest({
+          endpoint: `/api/ReportTemplateElement/UpdateReportTemplateElement/${id}`,
+          method: "PUT",
+          body
+        });
+      } catch (error: any) {
+        // Suppress or debounce error logs for drag/resize spam
+        const w: any = window;
+        if (!w.__lastTemplateUpdateErrorLog || Date.now() - w.__lastTemplateUpdateErrorLog > 1000) {
+          console.error("Failed to update template element:", error);
+          w.__lastTemplateUpdateErrorLog = Date.now();
+        }
+        // Do not show toast
+      }
+    }
+    // If we're editing a report and element has backendId, update report element
+    else if (state.activeReportId && element.backendId) {
+      try {
+        console.log(`🔄 Updating report element with backendId: ${element.backendId}`);
+        let typeId = 0;
+        if (element.type === 'text') typeId = 0;
+        else if (element.type === 'chart') typeId = 1;
+        else if (element.type === 'table') typeId = 2;
+        
+        await apiService.sendRequest({
+          endpoint: `/api/ReportElement/UpdateReportElement/${element.backendId}`,
+          method: "PUT",
+          body: {
+            type: typeId,
+            x: element.x,
+            y: element.y,
+            width: element.width,
+            height: element.height,
+            content: element.content,
+            reportPageId: currentPage.backendId
+          }
+        });
+        console.log(`✅ Report element ${element.backendId} updated successfully`);
+      } catch (error: any) {
+        // Suppress or debounce error logs for drag/resize spam
+        const w: any = window;
+        if (!w.__lastReportUpdateErrorLog || Date.now() - w.__lastReportUpdateErrorLog > 1000) {
+          console.error("Failed to update report element:", error);
+          w.__lastReportUpdateErrorLog = Date.now();
+        }
+        // Do not show toast for drag/resize operations
+      }
+    }
+  }, [templateId, state.canvasState.pages, state.canvasState.currentPageIndex, state.activeReportId]);
+
+  const deleteElement = useCallback(async (id: string, pageIndex?: number): Promise<void> => {
+    const page = state.canvasState.pages[pageIndex ?? state.canvasState.currentPageIndex];
+    const element = page.elements.find(e => e.id === id);
+    if (element && element.backendId) {
+      setDeletedElements(prev => [...prev, element.backendId]);
     }
     dispatch({ type: "DELETE_ELEMENT", payload: { id, pageIndex } });
-  }, [state.activeReportId]);
+  }, [state.canvasState.pages, dispatch]);
 
   const selectElement = useCallback((id: string) => {
     dispatch({ type: "SELECT_ELEMENT", payload: { id } });
@@ -549,18 +716,74 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     dispatch({ type: "LOAD_TEMPLATE", payload: { templateId } });
   }, []);
 
-  const saveCanvas = useCallback(() => { 
+  const saveCanvas = useCallback(async (): Promise<void> => { 
     if (state.activeReportId && state.canvasState.pages) {
       console.log("EditorContext: saveCanvas dispatching updateReportPages.");
       reduxDispatch(updateReportPages({
         reportId: state.activeReportId,
         pages: JSON.parse(JSON.stringify(state.canvasState.pages))
       }));
+      
+      // If we're editing a report, also sync all changes to backend
+      if (!templateId && state.activeReportId) {
+        try {
+          console.log("🔄 Syncing all report changes to backend...");
+          
+          // Update all pages and their elements
+          for (let pageIndex = 0; pageIndex < state.canvasState.pages.length; pageIndex++) {
+            const page = state.canvasState.pages[pageIndex];
+            
+            if (page.backendId) {
+              // Update existing page
+              await apiService.sendRequest({
+                endpoint: `/api/ReportPage/UpdateReportPage/${page.backendId}`,
+                method: 'PUT',
+                body: {
+                  width: page.width || 595,
+                  height: page.height || 842,
+                  orderIndex: pageIndex + 1,
+                  reportId: state.activeReportId
+                }
+              });
+              
+              // Update all elements on this page
+              for (const element of page.elements) {
+                if (element.backendId) {
+                  let typeId = 0;
+                  if (element.type === 'text') typeId = 0;
+                  else if (element.type === 'chart') typeId = 1;
+                  else if (element.type === 'table') typeId = 2;
+                  
+                  await apiService.sendRequest({
+                    endpoint: `/api/ReportElement/UpdateReportElement/${element.backendId}`,
+                    method: "PUT",
+                    body: {
+                      type: typeId,
+                      x: element.x,
+                      y: element.y,
+                      width: element.width,
+                      height: element.height,
+                      content: element.content,
+                      reportPageId: page.backendId
+                    }
+                  });
+                }
+              }
+            }
+          }
+          
+          console.log("✅ All report changes synced to backend successfully!");
+        } catch (error: any) {
+          console.error("❌ Error syncing report changes to backend:", error);
+          toast.error("Backend-ə sinxronizasiya xətası baş verdi");
+        }
+      }
+      
       toast.success("Report changes saved"); 
     } else {
       toast.warning("No active report to save.");
     }
-  }, [state.activeReportId, state.canvasState.pages, reduxDispatch]);
+  }, [state.activeReportId, state.canvasState.pages, reduxDispatch, templateId]);
 
   const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
   const redo = useCallback(() => dispatch({ type: "REDO" }), []);
@@ -575,23 +798,13 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return state.openReports.find(report => report.id === state.activeReportId) || null;
   }, [state.activeReportId, state.openReports]);
 
-  const addPage = useCallback((name: string) => {
-    if (!state.activeReportId) {
-      toast.error("Please select a report to add a page.");
-      return;
-    }
-    const pageName = name || `Page ${state.canvasState.pages.length + 1}`;
-    dispatch({ type: "ADD_PAGE", payload: { name: pageName } });
-    console.log(`Adding new page: ${pageName}`);
-  }, [state.activeReportId, state.canvasState.pages.length]);
-
-  const removePage = useCallback((pageIndex: number) => {
-    if (!state.activeReportId) {
-      toast.error("Please select a report to remove a page.");
-      return;
+  const removePage = useCallback(async (pageIndex: number): Promise<void> => {
+    const page = state.canvasState.pages[pageIndex];
+    if (page && page.backendId) {
+      setDeletedPages(prev => [...prev, page.backendId]);
     }
     dispatch({ type: "REMOVE_PAGE", payload: { pageIndex } });
-  }, [state.activeReportId]);
+  }, [state.canvasState.pages]);
 
   const setCurrentPage = useCallback((pageIndex: number) => {
     dispatch({ type: "SET_CURRENT_PAGE", payload: { pageIndex } });
@@ -625,6 +838,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         removePage,
         setCurrentPage,
         renamePage,
+        deletedPages,
+        deletedElements,
       }}
     >
       {children}
@@ -639,3 +854,42 @@ export const useEditor = (): EditorContextType => {
   }
   return context;
 };
+
+// Type mapping util
+function mapElementType(type: number | string): string {
+  if (typeof type === 'number') {
+    switch (type) {
+      case 0: return 'text';
+      case 1: return 'chart';
+      case 2: return 'table';
+      default: return 'text';
+    }
+  }
+  return String(type);
+}
+
+function getBackendType(type: string): number {
+  switch (String(type)) {
+    case "text": return 0;
+    case "chart": return 1;
+    case "table": return 2;
+    default: return 0;
+  }
+}
+
+// Chart content normalization
+function normalizeChartContent(content: any) {
+  if (!content) return { type: 'bar', data: [], title: '' };
+  // Köhnə format: {labels, datasets}
+  if (content.data && content.data.labels && content.data.datasets) {
+    return {
+      ...content,
+      data: content.data.labels.map((label: string, idx: number) => ({
+        name: label,
+        value: content.data.datasets[0]?.data?.[idx] ?? 0,
+      })),
+    };
+  }
+  // Array formatdadırsa, olduğu kimi saxla
+  return content;
+}

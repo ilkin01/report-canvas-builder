@@ -25,13 +25,13 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
     }
   }, [element]);
 
-  const handleChange = (
+  const handleChange = async (
     field: string,
     value: string | number | Record<string, any>
   ) => {
     if (field.includes(".")) {
       const [parent, child] = field.split(".");
-      updateElement(element.id, {
+      await updateElement(element.id, {
         content: {
           ...element.content,
           [parent]: {
@@ -41,7 +41,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
         },
       });
     } else {
-      updateElement(element.id, {
+      await updateElement(element.id, {
         content: {
           ...element.content,
           [field]: value,
@@ -50,13 +50,13 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
     }
   };
 
-  const handlePositionChange = (
+  const handlePositionChange = async (
     field: "x" | "y" | "width" | "height",
     value: string
   ) => {
     const numValue = parseInt(value, 10);
     if (!isNaN(numValue)) {
-      updateElement(element.id, {
+      await updateElement(element.id, {
         [field]: numValue,
       });
     }
@@ -78,7 +78,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
   };
 
   const renderPropertiesByType = () => {
-    switch (element.type) {
+    switch (String(element.type)) {
       case "text":
         return (
           <>
@@ -372,7 +372,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({ element })
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center">
-          <h3 className="font-semibold">{element.type.charAt(0).toUpperCase() + element.type.slice(1)} Properties</h3>
+          {(() => { const typeStr = String(element.type); return <h3 className="font-semibold">{typeStr.charAt(0).toUpperCase() + typeStr.slice(1)} Properties</h3>; })()}
           <Button
             variant="ghost"
             size="sm"

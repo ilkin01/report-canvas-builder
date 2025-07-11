@@ -42,12 +42,17 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { apiService } from "@/services/apiService";
+import { fetchUserProfile } from "@/redux/slices/authSlice";
 
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showTemplateManagement, setShowTemplateManagement] = useState(false);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [sort, setSort] = useState(true);
+  const [patientReports, setPatientReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
   
   const dispatch = useAppDispatch();
   const { reports, activeReportId } = useAppSelector(state => state.reports);
@@ -72,18 +77,18 @@ const Index = () => {
 
   // User adını al
   const getUserName = () => {
-    if (!user) return "İstifadəçi";
-    const firstName = user.firstName || "";
-    const lastName = user.lastName || "";
-    return `${firstName} ${lastName}`.trim() || "İstifadəçi";
+    if (!user || user.role !== 'HospitalLab') return "İstifadəçi";
+    const name = user.name || "";
+    const surname = user.surname || "";
+    return `${name} ${surname}`.trim() || "İstifadəçi";
   };
 
   // User adının baş hərflərini al
   const getUserInitials = () => {
-    if (!user) return "U";
-    const firstName = user.firstName || "";
-    const lastName = user.lastName || "";
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    if (!user || user.role !== 'HospitalLab') return "U";
+    const name = user.name || "";
+    const surname = user.surname || "";
+    return `${name.charAt(0)}${surname.charAt(0)}`.toUpperCase();
   };
 
   // Cari vaxtı al
@@ -167,6 +172,36 @@ const Index = () => {
     });
   }, [dispatch]);
 
+  useEffect(() => {
+    // Restore user session if token exists but user is missing
+    if (!user && localStorage.getItem('authToken')) {
+      dispatch(fetchUserProfile());
+    }
+  }, [user, dispatch]);
+
+  // Fetch patient reports with sort
+  useEffect(() => {
+    const fetchReports = async () => {
+      setLoadingReports(true);
+      try {
+        const res = await apiService.sendRequest({
+          endpoint: "/api/Report/GetAllReportsPagination",
+          method: "POST",
+          body: {
+            sort,
+            pageIndex: 0,
+            pageSize: 10,
+          },
+        });
+        setPatientReports(res?.data || res?.reports || []);
+      } catch (err) {
+        setPatientReports([]);
+      }
+      setLoadingReports(false);
+    };
+    fetchReports();
+  }, [sort]);
+
   // Go to editor when we have an active report
   useEffect(() => {
     if (activeReportId) {
@@ -207,44 +242,8 @@ const Index = () => {
         <div className="flex flex-1 overflow-hidden">
           {!isEditing ? (
             <div className="flex-1 overflow-auto">
-              {/* Hero Section */}
-              <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white">
-                <div className="absolute inset-0 bg-black/10"></div>
-                <div className="relative px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-12">
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
-                    <div className="flex items-center space-x-4">
-                      <Avatar className="h-16 w-16 ring-4 ring-white/20">
-                        <AvatarImage src={user?.profileImage} alt={getUserName()} />
-                        <AvatarFallback className="bg-white/20 text-white text-xl font-bold">
-                          {getUserInitials()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold">
-                          {getCurrentTime()}, {getUserName()}!
-                        </h1>
-                        <p className="text-blue-100 mt-1 flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          {getCurrentDate()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      {/* <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                        {user?.role || "İstifadəçi"}
-                      </Badge> */}
-                      <div className="ml-2 bg-white rounded-md px-4 py-2">
-                        <div className="text-black">
-                          <LanguageSwitcher />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+              {/* Quick Actions */}
               <div className="p-6 space-y-6">
-                {/* Quick Actions */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-6">
                   <Button 
                     onClick={handleCreateAnalysis}
@@ -305,183 +304,29 @@ const Index = () => {
                   ))}
                 </div>
 
-                {/* Main Content Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-white/80 backdrop-blur-sm">
-                    <TabsTrigger value="overview" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Ümumi Baxış
-                    </TabsTrigger>
-                    <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                      <TrendingUp className="h-4 w-4 mr-2" />
-                      Analitika
-                    </TabsTrigger>
-                    <TabsTrigger value="patients" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                      <Users className="h-4 w-4 mr-2" />
-                      Pasientlər
-                    </TabsTrigger>
-                    <TabsTrigger value="reports" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Hesabatlar
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="overview" className="space-y-4 sm:space-y-6">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
-                      {/* Daily Analysis Chart */}
-                      <Card className="col-span-1 lg:col-span-2 bg-white/80 backdrop-blur-sm border-0">
-                        <CardHeader>
-                          <CardTitle className="flex items-center">
-                            <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
-                            Həftəlik Analiz Statistikası
-                          </CardTitle>
-                          <CardDescription>Bu həftə aparılan analizlərin sayı</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <ChartContainer config={chartConfig} className="h-[300px]">
-                            <BarChart data={dailyAnalysisData}>
-                              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                              <YAxis tick={{ fontSize: 12 }} />
-                              <ChartTooltip content={<ChartTooltipContent />} />
-                              <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                          </ChartContainer>
-                        </CardContent>
-                      </Card>
-
-                      {/* Analysis Types Pie Chart */}
-                      <Card className="bg-white/80 backdrop-blur-sm border-0 mt-4 md:mt-0">
-                        <CardHeader>
-                          <CardTitle className="flex items-center">
-                            <BarChart3 className="h-5 w-5 mr-2 text-green-600" />
-                            Analiz Növləri
-                          </CardTitle>
-                          <CardDescription>Bu ay aparılan analizlərin növləri</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <ChartContainer config={chartConfig} className="h-[300px]">
-                            <PieChart>
-                              <ChartTooltip content={<ChartTooltipContent />} />
-                              <Pie
-                                data={analysisTypeData}
-                                cx="50%"
-                                cy="50%"
-                                outerRadius={80}
-                                dataKey="value"
-                                nameKey="name"
-                                label={(entry) => `${entry.name}: ${entry.value}%`}
-                              >
-                                {analysisTypeData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                              </Pie>
-                            </PieChart>
-                          </ChartContainer>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Recent Activities */}
-                    <Card className="bg-white/80 backdrop-blur-sm border-0 mt-4">
-                      <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <Activity className="h-5 w-5 mr-2 text-purple-600" />
-                          Son Fəaliyyətlər
-                        </CardTitle>
-                        <CardDescription>Son 24 saatda aparılan əməliyyatlar</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {recentActivities.map((activity) => (
-                            <div key={activity.id} className="flex items-center space-x-4 p-3 rounded-lg bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
-                              <div className="p-2 rounded-full bg-blue-100">
-                                {getActivityIcon(activity.type)}
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-medium text-gray-900">{activity.patient}</p>
-                                <p className="text-sm text-gray-500">{activity.time}</p>
-                              </div>
-                              <Badge className={getStatusColor(activity.status)}>
-                                {activity.status === 'completed' && 'Tamamlandı'}
-                                {activity.status === 'pending' && 'Gözləyir'}
-                                {activity.status === 'in-progress' && 'Davam edir'}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="analytics" className="space-y-4 sm:space-y-6">
-                    <Card className="bg-white/80 backdrop-blur-sm border-0">
-                      <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <TrendingUp className="h-5 w-5 mr-2 text-orange-600" />
-                          Aylıq Trend Analizi
-                        </CardTitle>
-                        <CardDescription>Pasient və analiz saylarının aylıq dəyişimi</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ChartContainer config={chartConfig} className="h-[400px]">
-                          <LineChart data={monthlyTrendData}>
-                            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                            <YAxis tick={{ fontSize: 12 }} />
-                            <ChartTooltip content={<ChartTooltipContent />} />
-                            <Line 
-                              type="monotone" 
-                              dataKey="patients" 
-                              stroke="#10B981" 
-                              strokeWidth={3}
-                              dot={{ fill: "#10B981", strokeWidth: 2, r: 6 }}
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="analyses" 
-                              stroke="#3B82F6" 
-                              strokeWidth={3}
-                              dot={{ fill: "#3B82F6", strokeWidth: 2, r: 6 }}
-                            />
-                          </LineChart>
-                        </ChartContainer>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="patients" className="space-y-4 sm:space-y-6">
-                    <Card className="bg-white/80 backdrop-blur-sm border-0">
-                      <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <Users className="h-5 w-5 mr-2 text-green-600" />
-                          Pasientlər Siyahısı
-                        </CardTitle>
-                        <CardDescription>Son əlavə edilən pasientlər</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <PatientsList onReportSelect={() => setIsEditing(true)} />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="reports" className="space-y-4 sm:space-y-6">
-                    <Card className="bg-white/80 backdrop-blur-sm border-0">
-                      <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <FileText className="h-5 w-5 mr-2 text-blue-600" />
-                          Hesabatlar
-                        </CardTitle>
-                        <CardDescription>Yaradılmış hesabatlar</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-center py-8 text-gray-500">
-                          Hesabatlar burada göstəriləcək
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
+                <Card className="bg-white/80 backdrop-blur-sm border-0">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Users className="h-5 w-5 mr-2 text-green-600" />
+                      Pasientlər Siyahısı
+                      <button
+                        className="ml-4 px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                        onClick={() => setSort((prev) => !prev)}
+                        title="Sort"
+                      >
+                        {sort ? "Ən yeni" : "Ən köhnə"}
+                      </button>
+                    </CardTitle>
+                    <CardDescription>Son əlavə edilən pasientlər</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingReports ? (
+                      <div className="py-8 text-center text-gray-500">Yüklənir...</div>
+                    ) : (
+                      <PatientsList onReportSelect={() => setIsEditing(true)} reports={patientReports} />
+                    )}
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Template Management Dialog */}
@@ -492,7 +337,7 @@ const Index = () => {
 
               {/* Template Gallery Dialog */}
               <Dialog open={showTemplateGallery} onOpenChange={setShowTemplateGallery}>
-                <DialogContent className="max-w-xs sm:max-w-md md:max-w-lg w-full">
+                <DialogContent className="max-w-2xl w-full">
                   <DialogHeader>
                     <DialogTitle>Şablon Seçin</DialogTitle>
                     <DialogDescription>

@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector } from '@/redux/hooks';
+import { useAppSelector, useAppDispatch } from '@/redux/hooks';
+import { fetchUserProfile } from '@/redux/slices/authSlice';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -10,16 +11,38 @@ interface AuthGuardProps {
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAuth = true }) => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
-    if (requireAuth && !isAuthenticated) {
-      // Əgər authentication tələb olunursa və user login deyilsə, login səhifəsinə yönləndir
-      navigate('/login');
-    } else if (!requireAuth && isAuthenticated) {
-      // Əgər authentication tələb olunmur (məsələn, login səhifəsi) və user artıq login olubsa, ana səhifəyə yönləndir
-      navigate('/');
-    }
-  }, [isAuthenticated, requireAuth, navigate]);
+    let cancelled = false;
+    const checkAuth = async () => {
+      if (requireAuth && !isAuthenticated) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          setRestoring(true);
+          try {
+            await dispatch(fetchUserProfile()).unwrap();
+          } catch {
+            if (!cancelled) navigate('/login');
+          } finally {
+            if (!cancelled) setRestoring(false);
+          }
+        } else {
+          navigate('/login');
+        }
+      } else if (!requireAuth && isAuthenticated) {
+        navigate('/');
+      }
+    };
+    checkAuth();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, requireAuth, navigate, dispatch]);
+
+  // Show nothing while restoring session
+  if (restoring || (requireAuth && !isAuthenticated && localStorage.getItem('authToken'))) {
+    return null;
+  }
 
   return <>{children}</>;
 }; 

@@ -27,8 +27,8 @@ export const PageControls = () => {
   
   const { pages, currentPageIndex } = canvasState;
   
-  const handleAddPage = useCallback(() => {
-    addPage(`Page ${pages.length + 1}`);
+  const handleAddPage = useCallback(async () => {
+    await addPage(`Page ${pages.length + 1}`);
   }, [pages.length, addPage]);
   
   const handlePageClick = (index: number) => {

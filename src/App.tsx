@@ -10,7 +10,10 @@ import { AuthGuard } from './components/AuthGuard';
 import Login from "./pages/Login";
 import Index from "./pages/Index";
 import TemplateCreator from "./pages/TemplateCreator";
+import Editor from "./pages/Editor";
 import NotFound from "./pages/NotFound";
+import ReportCreator from "./pages/report-creator";
+import ReportUpdater from "./pages/report-updater";
 import './i18n/config';
 
 const queryClient = new QueryClient();
@@ -38,6 +41,17 @@ const App = () => (
                 <TemplateCreator />
               </AuthGuard>
             } />
+            <Route path="/editor" element={
+              <AuthGuard requireAuth={true}>
+                <Editor />
+              </AuthGuard>
+            } />
+            <Route path="/report-creator" element={
+              <AuthGuard requireAuth={true}>
+                <ReportCreator />
+              </AuthGuard>
+            } />
+            <Route path="/report-updater" element={<ReportUpdater />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

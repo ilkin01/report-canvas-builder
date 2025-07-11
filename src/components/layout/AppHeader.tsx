@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TemplateGallery } from "../editor/TemplateGallery";
-import { ArrowDown, Redo, Square, Undo, User, LogOut } from "lucide-react";
+import { ArrowDown, Redo, Square, Undo, User, LogOut, Mail, Phone } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export const AppHeader = () => {
   const { undo, redo, canvasState, getActiveReport, setCurrentPage } = useEditor();
@@ -37,20 +38,18 @@ export const AppHeader = () => {
     toast.success("Uğurla çıxış etdiniz");
   };
 
-  // User adının baş hərflərini al
+  // User initials and name helpers
   const getUserInitials = () => {
     if (!user) return "U";
-    const firstName = user.firstName || "";
-    const lastName = user.lastName || "";
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    const name = user.name || "";
+    const surname = user.surname || "";
+    return `${name.charAt(0)}${surname.charAt(0)}`.toUpperCase();
   };
-
-  // User adını al
   const getUserName = () => {
     if (!user) return "İstifadəçi";
-    const firstName = user.firstName || "";
-    const lastName = user.lastName || "";
-    return `${firstName} ${lastName}`.trim() || "İstifadəçi";
+    const name = user.name || "";
+    const surname = user.surname || "";
+    return `${name} ${surname}`.trim() || "İstifadəçi";
   };
 
   // Generate and download PDF with all pages
@@ -255,36 +254,56 @@ export const AppHeader = () => {
         </Button>
 
         <div className="mx-2 h-6 border-l border-gray-200" />
+        <LanguageSwitcher />
         
         {/* User Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-auto px-3 rounded-full">
+            <Button variant="ghost" className="relative h-10 w-auto px-3 rounded-full hover:bg-gradient-to-r hover:from-blue-100 hover:to-purple-100 transition-all">
               <div className="flex items-center space-x-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.profileImage} alt={getUserName()} />
-                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium">
+                <Avatar className="h-10 w-10 ring-2 ring-blue-400/30">
+                  <AvatarImage src={user?.avatarUrl} alt={getUserName()} />
+                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-base font-bold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-gray-900">{getUserName()}</p>
-                  <p className="text-xs text-gray-500">{user?.role || "İstifadəçi"}</p>
+                  <p className="text-base font-semibold text-gray-900">{getUserName()}</p>
+                  <p className="text-xs text-blue-600 font-medium">{user?.role || "İstifadəçi"}</p>
                 </div>
               </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{getUserName()}</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email || "email@example.com"}
-                </p>
+          <DropdownMenuContent className="w-72 p-0 rounded-xl shadow-2xl border-0 bg-gradient-to-br from-white via-blue-50 to-purple-50" align="end" forceMount>
+            <div className="p-4 flex flex-col items-center text-center">
+              <Avatar className="h-16 w-16 ring-4 ring-blue-400/30 mb-2">
+                <AvatarImage src={user?.avatarUrl} alt={getUserName()} />
+                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-2xl font-bold">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="mt-1 space-y-1">
+                <div className="flex items-center justify-center gap-2 text-lg font-bold text-gray-900">
+                  <User className="h-5 w-5 text-blue-500" />
+                  {getUserName()}
+                </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-blue-700 font-medium">
+                  {user?.role || "İstifadəçi"}
+                </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-1">
+                  <Mail className="h-4 w-4 text-blue-400" />
+                  {user?.email}
+                </div>
+                {user?.phoneNumber && (
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-1">
+                    <Phone className="h-4 w-4 text-green-500" />
+                    {user.phoneNumber}
+                  </div>
+                )}
               </div>
-            </DropdownMenuLabel>
+            </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 font-semibold py-3 flex items-center justify-center hover:bg-red-50 transition-all">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Çıxış et</span>
             </DropdownMenuItem>

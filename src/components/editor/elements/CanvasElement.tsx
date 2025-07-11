@@ -23,6 +23,12 @@ export const CanvasElement: React.FC<CanvasElementProps> = ({ element }) => {
   
   const isSelected = element.isSelected;
 
+  // Minimum ölçü təyin et
+  const minWidth = 120;
+  const minHeight = 180;
+  const safeWidth = element.width && element.width >= minWidth ? element.width : minWidth;
+  const safeHeight = element.height && element.height >= minHeight ? element.height : minHeight;
+
   useEffect(() => {
     const handleMouseUp = () => {
       setIsDragging(false);
@@ -30,12 +36,12 @@ export const CanvasElement: React.FC<CanvasElementProps> = ({ element }) => {
       setResizeHandle(null);
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = async (e: MouseEvent) => {
       if (isDragging) {
         const dx = e.clientX - dragStart.x;
         const dy = e.clientY - dragStart.y;
 
-        updateElement(element.id, {
+        await updateElement(element.id, {
           x: element.x + dx,
           y: element.y + dy,
         });
@@ -71,7 +77,7 @@ export const CanvasElement: React.FC<CanvasElementProps> = ({ element }) => {
           newY = element.y + heightChange;
         }
 
-        updateElement(element.id, {
+        await updateElement(element.id, {
           width: newWidth,
           height: newHeight,
           x: newX,
@@ -127,7 +133,7 @@ export const CanvasElement: React.FC<CanvasElementProps> = ({ element }) => {
   };
 
   const renderElementContent = () => {
-    switch (element.type) {
+    switch (String(element.type)) {
       case "text":
         return <TextElement element={element} />;
       case "chart":
@@ -152,8 +158,8 @@ export const CanvasElement: React.FC<CanvasElementProps> = ({ element }) => {
       style={{
         left: `${element.x}px`,
         top: `${element.y}px`,
-        width: `${element.width}px`,
-        height: `${element.height}px`,
+        width: `${safeWidth}px`,
+        height: `${safeHeight}px`,
         zIndex: isSelected ? 10 : 1,
       }}
       onClick={handleMouseDown}

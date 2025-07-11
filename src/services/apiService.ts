@@ -6,10 +6,11 @@ interface SendRequestParams {
   method?: string;
   body?: any;
   useToken?: boolean;
+  token?: string; // <-- bunu əlavə et
 }
 
 export const apiService = {
-  sendRequest: async ({ endpoint, method = 'GET', body, useToken = true }: SendRequestParams) => {
+  sendRequest: async ({ endpoint, method = 'GET', body, useToken = true, token }: SendRequestParams & { token?: string }) => {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Content-Type': 'application/json', // Burada 415 problemini həll edirik
@@ -17,9 +18,9 @@ export const apiService = {
 
     // Əgər token istənirsə, əlavə et
     if (useToken) {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      const realToken = token || localStorage.getItem('authToken');
+      if (realToken) {
+        headers['Authorization'] = `Bearer ${realToken}`;
       }
     }
 
@@ -28,6 +29,7 @@ export const apiService = {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      credentials: 'include', // <-- cookie-lər də göndərilsin
     });
 
     // Cavabı oxuyuruq

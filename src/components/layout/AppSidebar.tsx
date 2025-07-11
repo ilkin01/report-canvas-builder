@@ -84,7 +84,6 @@ export const AppSidebar = () => {
             <Type className="h-4 w-4 mb-1" />
             <span className="text-xs">Text</span>
           </Button>
-          
           <Button
             onClick={() => handleAddElement("chart")}
             variant="outline"
@@ -94,17 +93,6 @@ export const AppSidebar = () => {
             <BarChart3 className="h-4 w-4 mb-1" />
             <span className="text-xs">Chart</span>
           </Button>
-          
-          <Button
-            onClick={() => handleAddElement("shape")}
-            variant="outline"
-            size="sm"
-            className="flex flex-col h-auto py-3"
-          >
-            <Square className="h-4 w-4 mb-1" />
-            <span className="text-xs">Shape</span>
-          </Button>
-          
           <Button
             onClick={() => handleAddElement("table")}
             variant="outline"
@@ -113,26 +101,6 @@ export const AppSidebar = () => {
           >
             <Table className="h-4 w-4 mb-1" />
             <span className="text-xs">Table</span>
-          </Button>
-          
-          <Button
-            onClick={() => handleAddElement("comment")}
-            variant="outline"
-            size="sm"
-            className="flex flex-col h-auto py-3"
-          >
-            <MessageSquare className="h-4 w-4 mb-1" />
-            <span className="text-xs">Comment</span>
-          </Button>
-          
-          <Button
-            onClick={() => handleAddElement("signature")}
-            variant="outline"
-            size="sm"
-            className="flex flex-col h-auto py-3"
-          >
-            <PenTool className="h-4 w-4 mb-1" />
-            <span className="text-xs">Signature</span>
           </Button>
         </div>
       </div>

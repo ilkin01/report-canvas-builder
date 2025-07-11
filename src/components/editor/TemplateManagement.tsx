@@ -16,6 +16,7 @@ import { getUserTemplates, saveUserTemplate } from "@/lib/templates";
 import { Template } from "@/types/editor";
 import { Trash, Edit, PenTool } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { apiService } from "@/services/apiService";
 
 interface TemplateManagementProps {
   open: boolean;
@@ -33,20 +34,39 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
 
   useEffect(() => {
     if (open) {
-      loadUserTemplates();
+      loadTemplatesFromBackend();
     }
   }, [open]);
 
-  const loadUserTemplates = () => {
-    const templates = getUserTemplates();
-    setUserTemplates(templates);
+  const loadTemplatesFromBackend = async () => {
+    try {
+      const templates = await apiService.sendRequest({
+        endpoint: "/api/ReportTemplate/GetAllReportTemplates",
+        method: "GET",
+      });
+      setUserTemplates(templates);
+    } catch (error) {
+      toast.error("Failed to load templates from backend");
+    }
   };
 
-  const handleDeleteTemplate = (templateId: string) => {
-    const updatedTemplates = userTemplates.filter(t => t.id !== templateId);
-    setUserTemplates(updatedTemplates);
-    localStorage.setItem('userTemplates', JSON.stringify(updatedTemplates));
-    toast.success("Template deleted successfully");
+  const handleDeleteTemplate = async (templateId: number) => {
+    try {
+      await apiService.sendRequest({
+        endpoint: `/api/ReportTemplate/DeleteReportTemplate/${templateId}`,
+        method: "DELETE",
+      });
+      toast.success("Template deleted successfully");
+      loadTemplatesFromBackend();
+    } catch (error: any) {
+      if (error && error.message && error.message.includes('409')) {
+        toast.error("Bu template artıq hər hansı bir reportda istifadə olunduğu üçün silinə bilməz");
+      } else if (error && error.status === 409) {
+        toast.error("Bu template artıq hər hansı bir reportda istifadə olunduğu üçün silinə bilməz");
+      } else {
+        toast.error(error.message || "Failed to delete template");
+      }
+    }
   };
 
   const handleEditTemplateName = (template: Template) => {
@@ -54,31 +74,40 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
     setEditName(template.name);
   };
 
-  const handleEditTemplateContent = (template: Template) => {
-    // Store the template to edit in localStorage temporarily
-    localStorage.setItem('editingTemplate', JSON.stringify(template));
-    onOpenChange(false);
-    navigate("/template-creator");
-    toast.info("Template loaded for editing. Make your changes and save.");
+  const handleEditTemplateContent = async (template: Template) => {
+    try {
+      // Load template elements from backend
+      const templateElements = await apiService.sendRequest({
+        endpoint: `/api/ReportTemplate/GetReportTemplateById/${template.id}`,
+        method: "GET",
+      });
+      
+      // Navigate to template-creator with template data
+      navigate(`/template-creator?templateId=${template.id}&templateName=${encodeURIComponent(template.name)}`);
+      onOpenChange(false); // Close template management dialog
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load template content");
+    }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingTemplate || !editName.trim()) {
       toast.error("Please enter a valid template name");
       return;
     }
-
-    const updatedTemplate = { ...editingTemplate, name: editName.trim() };
-    const updatedTemplates = userTemplates.map(t => 
-      t.id === editingTemplate.id ? updatedTemplate : t
-    );
-    
-    setUserTemplates(updatedTemplates);
-    localStorage.setItem('userTemplates', JSON.stringify(updatedTemplates));
-    
-    setEditingTemplate(null);
-    setEditName("");
-    toast.success("Template updated successfully");
+    try {
+      await apiService.sendRequest({
+        endpoint: `/api/ReportTemplate/UpdateReportTemplate/${editingTemplate.id}`,
+        method: "PUT",
+        body: { name: editName.trim() },
+      });
+      toast.success("Template updated successfully");
+      setEditingTemplate(null);
+      setEditName("");
+      loadTemplatesFromBackend();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update template");
+    }
   };
 
   const handleCancelEdit = () => {
@@ -111,9 +140,6 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
                   >
                     <div className="flex-1">
                       <h4 className="font-medium">{template.name}</h4>
-                      <p className="text-sm text-gray-500">
-                        {template.pages ? template.pages.length : 1} page(s), {template.elements?.length || 0} elements
-                      </p>
                     </div>
                     <div className="flex gap-2">
                       <Button
