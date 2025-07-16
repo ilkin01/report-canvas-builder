@@ -13,7 +13,7 @@ export const apiService = {
   sendRequest: async ({ endpoint, method = 'GET', body, useToken = true, token }: SendRequestParams & { token?: string }) => {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
-      'Content-Type': 'application/json', // Burada 415 problemini həll edirik
+      // 'Content-Type' yalnız JSON üçün qoyulsun
     };
 
     // Əgər token istənirsə, əlavə et
@@ -24,18 +24,24 @@ export const apiService = {
       }
     }
 
-    // JSON body varsa, onu stringify edirik
+    let requestBody = undefined;
+    if (body instanceof FormData) {
+      // FormData üçün Content-Type qoymuruq və body olduğu kimi göndərilir
+      requestBody = body;
+    } else if (body) {
+      headers['Content-Type'] = 'application/json';
+      requestBody = JSON.stringify(body);
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: requestBody,
       credentials: 'include', // <-- cookie-lər də göndərilsin
     });
 
-    // Cavabı oxuyuruq
     const data = await response.json();
 
-    // Əgər cavab "ok" deyilsə, xəta atırıq
     if (!response.ok) {
       throw new Error(data.message || 'Request failed');
     }

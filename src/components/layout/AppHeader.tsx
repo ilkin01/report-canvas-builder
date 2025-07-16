@@ -303,6 +303,9 @@ export const AppHeader = () => {
               </div>
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/settings')} className="text-gray-700 font-semibold py-3 flex items-center justify-center hover:bg-blue-50 transition-all">
+              <span>Settings</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 font-semibold py-3 flex items-center justify-center hover:bg-red-50 transition-all">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Çıxış et</span>

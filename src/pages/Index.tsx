@@ -44,6 +44,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiService } from "@/services/apiService";
 import { fetchUserProfile } from "@/redux/slices/authSlice";
+import { Input } from "@/components/ui/input";
 
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -53,6 +54,10 @@ const Index = () => {
   const [sort, setSort] = useState(true);
   const [patientReports, setPatientReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [searchName, setSearchName] = useState("");
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageSize = 10;
+  const [totalPages, setTotalPages] = useState(1);
   
   const dispatch = useAppDispatch();
   const { reports, activeReportId } = useAppSelector(state => state.reports);
@@ -155,10 +160,9 @@ const Index = () => {
   ];
 
   const quickStats = [
-    { title: 'Bu günkü analizlər', value: '42', change: '+12%', icon: TestTube, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { title: 'Aktiv pasientlər', value: '183', change: '+5%', icon: Users, color: 'text-green-600', bgColor: 'bg-green-50' },
-    { title: 'Ümumi hesabatlar', value: '1,234', change: '+8%', icon: FileText, color: 'text-orange-600', bgColor: 'bg-orange-50' },
-    { title: 'Orta müddət', value: '2.4h', change: '-15%', icon: Clock, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+    { title: 'Bu günkü analizlər', value: '42', icon: TestTube, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { title: 'Ümumi hesabatlar', value: '1,234', icon: FileText, color: 'text-orange-600', bgColor: 'bg-orange-50' },
+    { title: 'Orta müddət', value: '2.4h', icon: Clock, color: 'text-purple-600', bgColor: 'bg-purple-50' },
   ];
   
   useEffect(() => {
@@ -188,19 +192,22 @@ const Index = () => {
           endpoint: "/api/Report/GetAllReportsPagination",
           method: "POST",
           body: {
+            name: searchName,
             sort,
-            pageIndex: 0,
-            pageSize: 10,
+            pageIndex,
+            pageSize,
           },
         });
         setPatientReports(res?.data || res?.reports || []);
+        setTotalPages(res?.totalPages || 1);
       } catch (err) {
         setPatientReports([]);
+        setTotalPages(1);
       }
       setLoadingReports(false);
     };
     fetchReports();
-  }, [sort]);
+  }, [sort, searchName, pageIndex]);
 
   // Go to editor when we have an active report
   useEffect(() => {
@@ -285,15 +292,14 @@ const Index = () => {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-4 md:gap-6">
+                <div className="flex justify-center gap-6 flex-wrap">
                   {quickStats.map((stat, index) => (
-                    <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-0 bg-white/80 backdrop-blur-sm">
+                    <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-0 bg-white/80 backdrop-blur-sm min-w-[320px] max-w-[380px] flex-1">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                            <p className="text-xs text-green-600 mt-1">{stat.change} keçən həftədən</p>
                           </div>
                           <div className={`p-3 rounded-full ${stat.bgColor} group-hover:scale-110 transition-transform`}>
                             <stat.icon className={`h-6 w-6 ${stat.color}`} />
@@ -309,8 +315,18 @@ const Index = () => {
                     <CardTitle className="flex items-center">
                       <Users className="h-5 w-5 mr-2 text-green-600" />
                       Pasientlər Siyahısı
+                      <Input
+                        type="text"
+                        placeholder="Axtar..."
+                        value={searchName}
+                        onChange={e => {
+                          setSearchName(e.target.value);
+                          setPageIndex(0);
+                        }}
+                        className="ml-4 w-56 h-9 text-base"
+                      />
                       <button
-                        className="ml-4 px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                        className="ml-2 px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
                         onClick={() => setSort((prev) => !prev)}
                         title="Sort"
                       >
@@ -323,7 +339,27 @@ const Index = () => {
                     {loadingReports ? (
                       <div className="py-8 text-center text-gray-500">Yüklənir...</div>
                     ) : (
-                      <PatientsList onReportSelect={() => setIsEditing(true)} reports={patientReports} />
+                      <>
+                        <PatientsList onReportSelect={() => setIsEditing(true)} reports={patientReports} />
+                        {/* Pagination Controls */}
+                        <div className="flex justify-center items-center mt-4 gap-2">
+                          <button
+                            className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                            onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+                            disabled={pageIndex === 0}
+                          >
+                            Prev
+                          </button>
+                          <span className="mx-2 text-base">{pageIndex + 1} / {totalPages}</span>
+                          <button
+                            className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                            onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
+                            disabled={pageIndex >= totalPages - 1}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </>
                     )}
                   </CardContent>
                 </Card>

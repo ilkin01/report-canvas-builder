@@ -85,6 +85,23 @@ export const fetchUserProfile = createAsyncThunk(
   }
 );
 
+export const updateUserProfile = createAsyncThunk(
+  'auth/updateUserProfile',
+  async (profile: { name: string; surname: string; email: string; phoneNumber: string }, { rejectWithValue }) => {
+    try {
+      const response = await apiService.sendRequest({
+        endpoint: '/api/HospitalLab/UpdateHospitalLab',
+        method: 'PUT', // <-- Fix: Use PUT instead of POST
+        body: profile,
+        useToken: true,
+      });
+      return profile; // Return the updated profile
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to update profile');
+    }
+  }
+);
+
 interface AuthState {
   user: {
     name: string;
@@ -158,6 +175,21 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(updateUserProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (state.user) {
+          state.user = { ...state.user, ...action.payload };
+        }
+        state.error = null;
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

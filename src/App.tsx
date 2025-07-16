@@ -14,6 +14,7 @@ import Editor from "./pages/Editor";
 import NotFound from "./pages/NotFound";
 import ReportCreator from "./pages/report-creator";
 import ReportUpdater from "./pages/report-updater";
+import Settings from "./pages/Settings";
 import './i18n/config';
 
 const queryClient = new QueryClient();
@@ -52,6 +53,11 @@ const App = () => (
               </AuthGuard>
             } />
             <Route path="/report-updater" element={<ReportUpdater />} />
+            <Route path="/settings" element={
+              <AuthGuard requireAuth={true}>
+                <Settings />
+              </AuthGuard>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
