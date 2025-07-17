@@ -15,6 +15,8 @@ import NotFound from "./pages/NotFound";
 import ReportCreator from "./pages/report-creator";
 import ReportUpdater from "./pages/report-updater";
 import Settings from "./pages/Settings";
+import SendFileToPatient from "./pages/SendFileToPatient";
+import UpdatePatientFile from "./pages/UpdatePatientFile";
 import './i18n/config';
 
 const queryClient = new QueryClient();
@@ -56,6 +58,16 @@ const App = () => (
             <Route path="/settings" element={
               <AuthGuard requireAuth={true}>
                 <Settings />
+              </AuthGuard>
+            } />
+            <Route path="/send-file-to-patient" element={
+              <AuthGuard requireAuth={true}>
+                <SendFileToPatient />
+              </AuthGuard>
+            } />
+            <Route path="/update-patient-file/:id" element={
+              <AuthGuard requireAuth={true}>
+                <UpdatePatientFile />
               </AuthGuard>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

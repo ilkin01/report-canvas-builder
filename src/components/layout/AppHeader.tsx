@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useEditor } from "@/context/EditorContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TemplateGallery } from "../editor/TemplateGallery";
-import { ArrowDown, Redo, Square, Undo, User, LogOut, Mail, Phone } from "lucide-react";
+import { ArrowDown, Redo, Square, Undo, User, LogOut, Mail, Phone, Settings as SettingsIcon } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
@@ -304,11 +304,8 @@ export const AppHeader = () => {
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/settings')} className="text-gray-700 font-semibold py-3 flex items-center justify-center hover:bg-blue-50 transition-all">
+              <SettingsIcon className="mr-2 h-4 w-4" />
               <span>Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 font-semibold py-3 flex items-center justify-center hover:bg-red-50 transition-all">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Çıxış et</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

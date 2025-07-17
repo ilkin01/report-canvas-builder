@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { updateUserProfile } from "@/redux/slices/authSlice";
+import { updateUserProfile, uploadProfilePhoto } from "@/redux/slices/authSlice";
 import { apiService } from "@/services/apiService";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -55,10 +55,28 @@ const Settings = () => {
     }
   };
 
-  const saveAvatar = () => {
-    // TODO: Implement avatar upload logic
-    toast.success("Profil şəkli yadda saxlanıldı!");
-    setAvatarFile(null);
+  const saveAvatar = async () => {
+    if (!avatarFile) {
+      // Əgər şəkil seçilməyibsə, file input açılsın
+      fileInputRef.current?.click();
+      return;
+    }
+    setSaving(true);
+    try {
+      const resultAction = await dispatch(uploadProfilePhoto(avatarFile));
+      if (uploadProfilePhoto.fulfilled.match(resultAction)) {
+        toast.success("Profil şəkli uğurla yadda saxlanıldı!");
+        setAvatarFile(null);
+        if (resultAction.payload?.avatarUrl) {
+          setProfile((prev) => ({ ...prev, avatarUrl: resultAction.payload.avatarUrl }));
+        }
+      } else {
+        toast.error("Profil şəklini saxlamaq mümkün olmadı!");
+      }
+    } catch (err) {
+      toast.error("Profil şəklini saxlamaq mümkün olmadı!");
+    }
+    setSaving(false);
   };
 
   const handleSave = async () => {
@@ -112,13 +130,13 @@ const Settings = () => {
                 className="hidden"
                 onChange={handleAvatarFileChange}
               />
-              <button
+              <Button
                 className="w-full mt-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-lg hover:from-blue-600 hover:to-blue-800 transition-all text-base tracking-wide"
-                onClick={handleAvatarSaveClick}
+                onClick={saveAvatar}
                 type="button"
               >
-                Profil şəklini yadda saxla
-              </button>
+                {saving ? "Yüklənir..." : "Profil şəklini yadda saxla"}
+              </Button>
               {/* Removed name and email text under avatar for a cleaner look */}
             </div>
             {/* Profile Fields */}

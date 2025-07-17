@@ -45,12 +45,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiService } from "@/services/apiService";
 import { fetchUserProfile } from "@/redux/slices/authSlice";
 import { Input } from "@/components/ui/input";
+import PatientFilesList from '@/components/patients/PatientFilesList';
+import { fetchReportStats } from '@/redux/slices/reportsSlice';
+import { fetchMonthlySentFilesCount } from '@/redux/slices/reportsSlice';
 
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showTemplateManagement, setShowTemplateManagement] = useState(false);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState<'reports' | 'files'>('reports');
   const [sort, setSort] = useState(true);
   const [patientReports, setPatientReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
@@ -60,8 +63,9 @@ const Index = () => {
   const [totalPages, setTotalPages] = useState(1);
   
   const dispatch = useAppDispatch();
-  const { reports, activeReportId } = useAppSelector(state => state.reports);
+  const { reports, activeReportId, reportStats } = useAppSelector(state => state.reports);
   const { user } = useAppSelector(state => state.auth);
+  const { monthlySentFilesCount } = useAppSelector(state => state.reports);
   const navigate = useNavigate();
 
   // Chart config
@@ -160,16 +164,18 @@ const Index = () => {
   ];
 
   const quickStats = [
-    { title: 'Bu günkü analizlər', value: '42', icon: TestTube, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { title: 'Ümumi hesabatlar', value: '1,234', icon: FileText, color: 'text-orange-600', bgColor: 'bg-orange-50' },
-    { title: 'Orta müddət', value: '2.4h', icon: Clock, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+    { title: 'Günlük Reportlar', value: String(reportStats?.dailyReportCount ?? 0), icon: BarChart3, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { title: 'Aylıq Reportların sayı', value: String(reportStats?.monthlyReportCount ?? 0), icon: Calendar, color: 'text-orange-600', bgColor: 'bg-orange-50' },
+    { title: 'Aylıq göndərilən fayllar', value: String(monthlySentFilesCount ?? 0), icon: Download, color: 'text-purple-600', bgColor: 'bg-purple-50' },
   ];
   
   useEffect(() => {
     // Load initial data
     Promise.all([
       dispatch(fetchAllReports()),
-      dispatch(fetchAllTemplates())
+      dispatch(fetchAllTemplates()),
+      dispatch(fetchReportStats()),
+      dispatch(fetchMonthlySentFilesCount()),
     ]).catch(err => {
       toast.error("Başlangıç verileri yüklenirken hata oluştu");
       console.error("Error loading initial data:", err);
@@ -308,61 +314,103 @@ const Index = () => {
                       </CardContent>
                     </Card>
                   ))}
+                  {/* 4-cü olaraq yeni düymə */}
+                  <div className="min-w-[320px] max-w-[380px] flex-1 flex items-center justify-center">
+                    <Button
+                      onClick={() => navigate('/send-file-to-patient')}
+                      className="w-full h-20 bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 text-lg font-semibold rounded-xl"
+                      style={{ minWidth: 320, maxWidth: 380 }}
+                    >
+                      Send a file to patient
+                    </Button>
+                  </div>
                 </div>
 
-                <Card className="bg-white/80 backdrop-blur-sm border-0">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Users className="h-5 w-5 mr-2 text-green-600" />
-                      Pasientlər Siyahısı
-                      <Input
-                        type="text"
-                        placeholder="Axtar..."
-                        value={searchName}
-                        onChange={e => {
-                          setSearchName(e.target.value);
-                          setPageIndex(0);
-                        }}
-                        className="ml-4 w-56 h-9 text-base"
-                      />
-                      <button
-                        className="ml-2 px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
-                        onClick={() => setSort((prev) => !prev)}
-                        title="Sort"
-                      >
-                        {sort ? "Ən yeni" : "Ən köhnə"}
-                      </button>
-                    </CardTitle>
-                    <CardDescription>Son əlavə edilən pasientlər</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loadingReports ? (
-                      <div className="py-8 text-center text-gray-500">Yüklənir...</div>
-                    ) : (
-                      <>
-                        <PatientsList onReportSelect={() => setIsEditing(true)} reports={patientReports} />
-                        {/* Pagination Controls */}
-                        <div className="flex justify-center items-center mt-4 gap-2">
-                          <button
-                            className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
-                            onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
-                            disabled={pageIndex === 0}
-                          >
-                            Prev
-                          </button>
-                          <span className="mx-2 text-base">{pageIndex + 1} / {totalPages}</span>
-                          <button
-                            className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
-                            onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
-                            disabled={pageIndex >= totalPages - 1}
-                          >
-                            Next
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
+                {/* Tabs for Patient Reports & Patient Files */}
+                <div className="flex gap-2 mb-4">
+                  <button
+                    className={`px-4 py-2 rounded-t-lg font-semibold border-b-2 transition ${activeTab === 'reports' ? 'border-blue-600 text-blue-700 bg-white' : 'border-transparent text-gray-500 bg-gray-100 hover:bg-gray-200'}`}
+                    onClick={() => setActiveTab('reports')}
+                  >
+                    Patient Reports
+                  </button>
+                  <button
+                    className={`px-4 py-2 rounded-t-lg font-semibold border-b-2 transition ${activeTab === 'files' ? 'border-blue-600 text-blue-700 bg-white' : 'border-transparent text-gray-500 bg-gray-100 hover:bg-gray-200'}`}
+                    onClick={() => setActiveTab('files')}
+                  >
+                    Patient Files
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                {activeTab === 'reports' ? (
+                  <Card className="bg-white/80 backdrop-blur-sm border-0">
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Users className="h-5 w-5 mr-2 text-green-600" />
+                        Pasientlər Siyahısı
+                        <Input
+                          type="text"
+                          placeholder="Axtar..."
+                          value={searchName}
+                          onChange={e => {
+                            setSearchName(e.target.value);
+                            setPageIndex(0);
+                          }}
+                          className="ml-4 w-56 h-9 text-base"
+                        />
+                        <button
+                          className="ml-2 px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                          onClick={() => setSort((prev) => !prev)}
+                          title="Sort"
+                        >
+                          {sort ? "Ən yeni" : "Ən köhnə"}
+                        </button>
+                      </CardTitle>
+                      <CardDescription>Son əlavə edilən pasientlər</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingReports ? (
+                        <div className="py-8 text-center text-gray-500">Yüklənir...</div>
+                      ) : (
+                        <>
+                          <PatientsList onReportSelect={() => setIsEditing(true)} reports={patientReports} />
+                          {/* Pagination Controls */}
+                          <div className="flex justify-center items-center mt-4 gap-2">
+                            <button
+                              className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                              onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+                              disabled={pageIndex === 0}
+                            >
+                              Prev
+                            </button>
+                            <span className="mx-2 text-base">{pageIndex + 1} / {totalPages}</span>
+                            <button
+                              className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                              onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
+                              disabled={pageIndex >= totalPages - 1}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="bg-white/80 backdrop-blur-sm border-0">
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Users className="h-5 w-5 mr-2 text-blue-600" />
+                        Patient Files
+                      </CardTitle>
+                      <CardDescription>Pasiyentlərə göndərilən fayllar</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <PatientFilesList />
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               {/* Template Management Dialog */}

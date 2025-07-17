@@ -102,6 +102,26 @@ export const updateUserProfile = createAsyncThunk(
   }
 );
 
+export const uploadProfilePhoto = createAsyncThunk(
+  'auth/uploadProfilePhoto',
+  async (file: File, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append('newPicture', file);
+      const response = await apiService.sendRequest({
+        endpoint: '/api/HospitalLab/update-photo',
+        method: 'POST',
+        body: formData,
+        useToken: true,
+      });
+      // Backend yeni avatar url-i qaytarırsa, onu response-dan götür
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Şəkil yüklənmədi');
+    }
+  }
+);
+
 interface AuthState {
   user: {
     name: string;
@@ -190,6 +210,22 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // Avatar upload üçün reducer
+      .addCase(uploadProfilePhoto.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(uploadProfilePhoto.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (state.user && action.payload?.avatarUrl) {
+          state.user.avatarUrl = action.payload.avatarUrl;
+        }
+        state.error = null;
+      })
+      .addCase(uploadProfilePhoto.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
