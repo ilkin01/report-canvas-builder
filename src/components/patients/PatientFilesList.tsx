@@ -146,6 +146,7 @@ const PatientFilesList: React.FC = () => {
                 <th className="py-2 px-4 text-left font-semibold">File Name</th>
                 <th className="py-2 px-4 text-left font-semibold">Patient Name</th>
                 <th className="py-2 px-4 text-left font-semibold">Patient Surname</th>
+                <th className="py-2 px-4 text-left font-semibold">Patient Father Name</th>
                 <th className="py-2 px-4 text-left font-semibold">Created At</th>
                 <th className="py-2 px-4 text-left font-semibold">Actions</th>
               </tr>
@@ -153,7 +154,7 @@ const PatientFilesList: React.FC = () => {
             <tbody>
               {files.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-400 text-base">
+                  <td colSpan={6} className="py-8 text-center text-gray-400 text-base">
                     <div className="flex flex-col items-center gap-2">
                       <svg width="40" height="40" fill="none" viewBox="0 0 24 24"><path d="M12 17v.01M12 7v6m0 8a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       Hal-hazırda heç bir fayl yoxdur
@@ -162,13 +163,17 @@ const PatientFilesList: React.FC = () => {
                 </tr>
               ) : (
                 files.map((file) => {
-                  const [name, ...surnameArr] = (file.patientFullname || '').split(' ');
-                  const surname = surnameArr.join(' ');
+                  // patientFullname: "Nihad Axundzade Refi" və ya "Akif Aliyev Rashid"
+                  const parts = (file.patientFullname || '').split(' ');
+                  const name = parts[0] || '';
+                  const surname = parts[1] || '';
+                  const fatherName = parts[2] || '';
                   return (
                     <tr key={file.id} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-4 font-medium">{file.fileName}</td>
                       <td className="py-2 px-4">{name}</td>
                       <td className="py-2 px-4">{surname}</td>
+                      <td className="py-2 px-4">{fatherName}</td>
                       <td className="py-2 px-4">{file.createdAt ? getLocalDateString(file.createdAt) : ''}</td>
                       <td className="py-2 px-4 flex gap-2">
                         <Button size="icon" variant="outline" title="Download" onClick={() => handleDownload(file)}>

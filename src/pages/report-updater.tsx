@@ -227,7 +227,6 @@ const ReportUpdaterContent = () => {
         // 2. PDF-i blob kimi al
         const pdfBlob = pdf.output('blob');
         // 3. UpdateReportBlob sorğusu göndər
-        alert('UpdateReportBlob sorgusu GÖNDƏRİLİR!');
         const filename = `${reportName || 'report'}.pdf`;
         const formData = new FormData();
         formData.append('file', pdfBlob, filename);
@@ -251,7 +250,6 @@ const ReportUpdaterContent = () => {
           alert('UpdateReportBlob error: ' + error);
           throw new Error(error || 'Failed to update report blob');
         }
-        alert('UpdateReportBlob sorgusu BITDI!');
         setTimeout(() => navigate('/'), 1000);
       }
     } catch (err: any) {

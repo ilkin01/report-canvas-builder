@@ -153,7 +153,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
             <Button size="sm" variant="ghost" onClick={() => setSelectedPatient(null)}>Dəyiş</Button>
           </div>
         )}
-        <div className="overflow-auto max-h-[300px]">
+        <div className="overflow-y-auto max-h-[350px]">
           {patientsLoading ? (
             <div className="flex justify-center items-center py-8">
               <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></span>
@@ -161,21 +161,25 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
           ) : patients.length === 0 ? (
             <div className="text-center py-6 text-gray-400">Heç bir pasiyent tapılmadı</div>
           ) : (
-            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
+            <div className="min-w-full">
+              <div className="flex font-semibold border-b bg-gray-50 text-xs">
+                <div className="flex-1 px-2 py-2">Ad Soyad</div>
+                <div className="w-32 px-2 py-2">Ata adı</div>
+                <div className="w-32 px-2 py-2">Doğum</div>
+                <div className="w-32 px-2 py-2">FIN</div>
+              </div>
               {patients.map(p => (
                 <div
                   key={p.id}
-                  className={`w-full rounded-xl border-2 transition cursor-pointer p-4 shadow-sm bg-white hover:shadow-lg hover:border-blue-300 ${
-                    selectedPatient?.id === p.id ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-100"
+                  className={`flex items-center border-b cursor-pointer text-xs transition ${
+                    selectedPatient?.id === p.id ? "bg-blue-50 border-blue-400" : "hover:bg-gray-50"
                   }`}
                   onClick={() => setSelectedPatient({ id: p.id, name: p.name, surname: p.surname, fatherName: p.fatherName })}
                 >
-                  <div className="font-bold text-lg text-blue-800">{p.name} {p.surname}</div>
-                  <div className="text-xs text-gray-500 mb-1">{p.fatherName}</div>
-                  <div className="flex gap-2 text-xs text-gray-600">
-                    <span><b>Doğum:</b> {p.birthDay}</span>
-                    <span><b>FIN:</b> {p.finCode}</span>
-                  </div>
+                  <div className="flex-1 px-2 py-2 font-medium text-blue-800 truncate">{p.name} {p.surname}</div>
+                  <div className="w-32 px-2 py-2 text-gray-500 truncate">{p.fatherName}</div>
+                  <div className="w-32 px-2 py-2">{p.birthDay}</div>
+                  <div className="w-32 px-2 py-2">{p.finCode}</div>
                 </div>
               ))}
             </div>

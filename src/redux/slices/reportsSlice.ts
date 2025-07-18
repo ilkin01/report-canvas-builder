@@ -88,7 +88,10 @@ export const updateExistingReport = createAsyncThunk(
   async (report: ReportDocument, { rejectWithValue }) => {
     try {
       return await reportsApi.updateReport(report);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.response?.status === 403 || error?.status === 403 || error?.message?.includes('403')) {
+        toast.error('Artıq 2 gün keçib, bu əməliyyatı həyata keçirmək mümkün deyil.');
+      }
       return rejectWithValue('Failed to update report');
     }
   }
@@ -103,7 +106,10 @@ export const deleteExistingReport = createAsyncThunk(
         return rejectWithValue('Failed to delete report');
       }
       return id; // Başarılı silme durumunda ID'yi döndür
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.response?.status === 403 || error?.status === 403 || error?.message?.includes('403')) {
+        toast.error('Artıq 2 gün keçib, bu əməliyyatı həyata keçirmək mümkün deyil.');
+      }
       return rejectWithValue('Failed to delete report');
     }
   }
@@ -134,11 +140,17 @@ export const uploadPatientFile = createAsyncThunk(
         }
       );
       if (!response.ok) {
+        if (response.status === 403) {
+          toast.error('Artıq 2 gün keçib, bu əməliyyatı həyata keçirmək mümkün deyil.');
+        }
         const error = await response.text();
         throw new Error(error || 'Failed to upload file');
       }
       return await response.json();
     } catch (err: any) {
+      if (err?.response?.status === 403 || err?.status === 403 || err?.message?.includes('403')) {
+        toast.error('Artıq 2 gün keçib, bu əməliyyatı həyata keçirmək mümkün deyil.');
+      }
       return rejectWithValue(err.message || 'Failed to upload file');
     }
   }
@@ -158,11 +170,17 @@ export const deletePatientFile = createAsyncThunk(
         }
       );
       if (!response.ok) {
+        if (response.status === 403) {
+          toast.error('Artıq 2 gün keçib deyə silinə bilməz.');
+        }
         const error = await response.text();
         throw new Error(error || 'Failed to delete file');
       }
       return id;
     } catch (err: any) {
+      if (err?.response?.status === 403 || err?.status === 403 || err?.message?.includes('403')) {
+        toast.error('Artıq 2 gün keçib deyə silinə bilməz.');
+      }
       return rejectWithValue(err.message || 'Failed to delete file');
     }
   }

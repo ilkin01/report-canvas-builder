@@ -341,28 +341,48 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
                         <div className="rounded-full bg-blue-100 text-blue-700 px-3 py-1 text-sm font-semibold shadow">
                           Seçilmiş: {(() => {
                             const p = patients.find(x => String(x.id) === String(selectedPatientId));
-                            return p ? `${p.name} ${p.surname}` : '';
+                            return p
+                              ? (p.fullName || [p.name, p.surname].filter(Boolean).join(' ') || [p.firstName, p.lastName].filter(Boolean).join(' ') || p.name || p.surname || p.firstName || p.lastName || '')
+                              : '';
                           })()}
                         </div>
                       </div>
                     )}
-                    <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(180px,1fr))]">
-                      {patients.map((p: any) => (
-                        <div
-                          key={p.id}
-                          className={`rounded-xl border-2 transition cursor-pointer p-4 shadow-sm bg-white hover:shadow-lg hover:border-blue-300 ${
-                            selectedPatientId === String(p.id) ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-100"
-                          }`}
-                          onClick={() => setSelectedPatientId(String(p.id))}
-                        >
-                          <div className="font-bold text-lg text-blue-800">{p.name} {p.surname}</div>
-                          <div className="text-xs text-gray-500 mb-1">{p.fatherName}</div>
-                          <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-                            <span><b>Doğum:</b> {p.birthDay ? p.birthDay : '—'}</span>
-                            <span><b>FIN:</b> {p.finCode ? p.finCode : '—'}</span>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="overflow-y-auto max-h-[350px]">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="py-2 px-4 text-left font-semibold">Ad Soyad</th>
+                            <th className="py-2 px-4 text-left font-semibold">Ata adı</th>
+                            <th className="py-2 px-4 text-left font-semibold">Doğum</th>
+                            <th className="py-2 px-4 text-left font-semibold">FIN</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {patients.map((p: any) => {
+                            const selected = selectedPatientId === String(p.id);
+                            return (
+                              <tr
+                                key={p.id}
+                                className={
+                                  "border-b transition cursor-pointer " +
+                                  (selected ? "bg-blue-50" : "hover:bg-gray-50")
+                                }
+                                onClick={() => setSelectedPatientId(String(p.id))}
+                              >
+                                <td className="py-2 px-4">
+                                  <span className={"font-semibold underline " + (selected ? "text-blue-800" : "text-blue-700 hover:text-blue-900") }>
+                                    {p.fullName || [p.name, p.surname].filter(Boolean).join(' ')}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-4 text-gray-500">{p.fatherName || p.middleName || p.patronymic || ''}</td>
+                                <td className="py-2 px-4">{p.birthDay}</td>
+                                <td className="py-2 px-4">{p.finCode}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}

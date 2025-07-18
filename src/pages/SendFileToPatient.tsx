@@ -38,11 +38,12 @@ const SendFileToPatient: React.FC = () => {
       setLocalLoading(true);
       setErrorMsg('');
       try {
+        const patientFullName = [selectedPatient.name, selectedPatient.surname, selectedPatient.fatherName].filter(Boolean).join(' ');
         await dispatch(
           uploadPatientFile({
             file: selectedFile,
             patientId: String(selectedPatient.id),
-            patientFullName: `${selectedPatient.name || ''} ${selectedPatient.surname || ''}`.trim(),
+            patientFullName: patientFullName,
             description: description,
           })
         ).unwrap();
