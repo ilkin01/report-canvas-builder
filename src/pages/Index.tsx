@@ -60,6 +60,7 @@ const Index = () => {
   const [searchName, setSearchName] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
   const pageSize = 10;
+  const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   
   const dispatch = useAppDispatch();
@@ -205,9 +206,11 @@ const Index = () => {
           },
         });
         setPatientReports(res?.data || res?.reports || []);
-        setTotalPages(res?.totalPages || 1);
+        setTotalCount(res?.totalCount || 0);
+        setTotalPages(Math.max(1, Math.ceil((res?.totalCount || 0) / pageSize)));
       } catch (err) {
         setPatientReports([]);
+        setTotalCount(0);
         setTotalPages(1);
       }
       setLoadingReports(false);
@@ -376,23 +379,25 @@ const Index = () => {
                         <>
                           <PatientsList onReportSelect={() => setIsEditing(true)} reports={patientReports} />
                           {/* Pagination Controls */}
-                          <div className="flex justify-center items-center mt-4 gap-2">
-                            <button
-                              className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
-                              onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
-                              disabled={pageIndex === 0}
-                            >
-                              Prev
-                            </button>
-                            <span className="mx-2 text-base">{pageIndex + 1} / {totalPages}</span>
-                            <button
-                              className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
-                              onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
-                              disabled={pageIndex >= totalPages - 1}
-                            >
-                              Next
-                            </button>
-                          </div>
+                          {patientReports.length > 0 ? (
+                            <div className="flex justify-center items-center mt-4 gap-2">
+                              <button
+                                className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                                onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+                                disabled={pageIndex === 0}
+                              >
+                                Prev
+                              </button>
+                              <span className="mx-2 text-base">{pageIndex + 1} / {totalPages}</span>
+                              <button
+                                className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                                onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
+                                disabled={pageIndex >= totalPages - 1}
+                              >
+                                Next
+                              </button>
+                            </div>
+                          ) : null}
                         </>
                       )}
                     </CardContent>

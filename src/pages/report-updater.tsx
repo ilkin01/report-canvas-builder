@@ -13,6 +13,10 @@ import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEditor } from "@/context/EditorContext";
 import { apiService } from "@/services/apiService";
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { useAppDispatch } from "@/redux/hooks";
+import { deleteReportPage, deleteReportElement, createReportPage, createReportElement, updateReportPage, updateReportElement } from '@/redux/slices/reportsSlice';
 
 const ReportUpdaterContent = () => {
   const [reportName, setReportName] = useState("");
@@ -22,6 +26,7 @@ const ReportUpdaterContent = () => {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     const reportId = searchParams.get('reportId');
@@ -94,10 +99,7 @@ const ReportUpdaterContent = () => {
         // 1. DELETE removed pages
         for (const pageId of deletedPages) {
           try {
-            await apiService.sendRequest({
-              endpoint: `/api/ReportPage/DeleteReportPage/${pageId}`,
-              method: 'DELETE',
-            });
+            await dispatch(deleteReportPage(pageId)).unwrap();
             console.log(`🗑️ Deleted page ${pageId}`);
           } catch (err) {
             console.error(`❌ Failed to delete page ${pageId}:`, err);
@@ -106,10 +108,7 @@ const ReportUpdaterContent = () => {
         // 2. DELETE removed elements
         for (const elementId of deletedElements) {
           try {
-            await apiService.sendRequest({
-              endpoint: `/api/ReportElement/DeleteReportElement/${elementId}`,
-              method: 'DELETE',
-            });
+            await dispatch(deleteReportElement(elementId)).unwrap();
             console.log(`🗑️ Deleted element ${elementId}`);
           } catch (err) {
             console.error(`❌ Failed to delete element ${elementId}:`, err);
@@ -123,30 +122,23 @@ const ReportUpdaterContent = () => {
           if (page.backendId) {
             // Update existing page
             console.log(`🔄 Updating page with backendId: ${page.backendId}`);
-            await apiService.sendRequest({
-              endpoint: `/api/ReportPage/UpdateReportPage/${page.backendId}`,
-              method: 'PUT',
-              body: {
-                width: page.width || 595,
-                height: page.height || 842,
-                orderIndex: pageIndex + 1,
-                reportId: editingReportId
-              }
-            });
+            await dispatch(updateReportPage({
+              pageId: page.backendId,
+              width: page.width || 595,
+              height: page.height || 842,
+              orderIndex: pageIndex + 1,
+              reportId: editingReportId
+            })).unwrap();
             console.log(`✅ Page ${page.backendId} updated successfully`);
           } else {
             // Create new page
             console.log(`🆕 Creating new page for index ${pageIndex + 1}`);
-            const pageRes = await apiService.sendRequest({
-              endpoint: '/api/ReportPage/CreateReportPage',
-              method: 'POST',
-              body: {
-                width: page.width || 595,
-                height: page.height || 842,
-                orderIndex: pageIndex + 1,
-                reportId: editingReportId
-              }
-            });
+            const pageRes = await dispatch(createReportPage({
+              width: page.width || 595,
+              height: page.height || 842,
+              orderIndex: pageIndex + 1,
+              reportId: editingReportId
+            })).unwrap();
             const newPageId = pageRes?.id || pageRes?.reportPageId || pageRes?.data?.id;
             if (!newPageId) {
               throw new Error(`Page ${pageIndex + 1} yaradılmadı!`);
@@ -165,36 +157,29 @@ const ReportUpdaterContent = () => {
             if (element.backendId) {
               // Update existing element
               console.log(`🔄 Updating element with backendId: ${element.backendId}`);
-              await apiService.sendRequest({
-                endpoint: `/api/ReportElement/UpdateReportElement/${element.backendId}`,
-                method: 'PUT',
-                body: {
-                  type: typeId,
-                  x: element.x,
-                  y: element.y,
-                  width: element.width,
-                  height: element.height,
-                  content: element.content,
-                  reportPageId: page.backendId
-                }
-              });
+              await dispatch(updateReportElement({
+                elementId: element.backendId,
+                type: typeId,
+                x: element.x,
+                y: element.y,
+                width: element.width,
+                height: element.height,
+                content: element.content,
+                reportPageId: page.backendId
+              })).unwrap();
               console.log(`✅ Element ${element.backendId} updated successfully`);
             } else {
               // Create new element
               console.log(`🆕 Creating new element for page ${pageIndex + 1}`);
-              const elementRes = await apiService.sendRequest({
-                endpoint: '/api/ReportElement/CreateReportElement',
-                method: 'POST',
-                body: {
-                  type: typeId,
-                  x: element.x,
-                  y: element.y,
-                  width: element.width,
-                  height: element.height,
-                  content: element.content,
-                  reportPageId: page.backendId
-                }
-              });
+              const elementRes = await dispatch(createReportElement({
+                type: typeId,
+                x: element.x,
+                y: element.y,
+                width: element.width,
+                height: element.height,
+                content: element.content,
+                reportPageId: page.backendId
+              })).unwrap();
               const newElementId = elementRes?.id || elementRes?.reportElementId || elementRes?.data?.id;
               if (!newElementId) {
                 throw new Error(`Element ${elementIndex + 1} yaradılmadı!`);
@@ -206,6 +191,67 @@ const ReportUpdaterContent = () => {
         }
         console.log("🎉 All pages and elements updated successfully!");
         toast.success('Bütün səhifələr və elementlər uğurla yeniləndi!');
+        // --- PDF GENERATION AND UpdateReportBlob ---
+        // 1. PDF generasiya et
+        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const currentPageIndex = canvasState.currentPageIndex;
+        for (let i = 0; i < canvasState.pages.length; i++) {
+          if (i > 0) pdf.addPage();
+          // Set current page visually if needed (optional)
+          // setCurrentPage(i); // if you want to visually update
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const canvasContainer = document.querySelector('.canvas-container') as HTMLElement;
+          if (!canvasContainer) {
+            alert('canvas-container tapılmadı! PDF generasiya olunmur!');
+            throw new Error('canvas-container tapılmadı!');
+          }
+          try {
+            const canvas = await html2canvas(canvasContainer, {
+              scale: 1.5,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+              logging: false,
+              imageTimeout: 15000,
+            });
+            const imgData = canvas.toDataURL('image/jpeg', 0.85);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+            pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth * ratio, imgHeight * ratio, undefined, 'MEDIUM');
+          } catch (err) {
+            console.error(`Error capturing page ${i+1}:`, err);
+          }
+        }
+        // 2. PDF-i blob kimi al
+        const pdfBlob = pdf.output('blob');
+        // 3. UpdateReportBlob sorğusu göndər
+        alert('UpdateReportBlob sorgusu GÖNDƏRİLİR!');
+        const filename = `${reportName || 'report'}.pdf`;
+        const formData = new FormData();
+        formData.append('file', pdfBlob, filename);
+        formData.append('patientId', getActiveReport()?.patientId || '');
+        formData.append('patientName', getActiveReport()?.patientName || '');
+        formData.append('type', '0');
+        formData.append('status', '1');
+        formData.append('name', reportName);
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(
+          `https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/Report/UpdateReportBlob/${editingReportId}`,
+          {
+            method: 'PUT',
+            body: formData,
+            credentials: 'include',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          }
+        );
+        if (!response.ok) {
+          const error = await response.text();
+          alert('UpdateReportBlob error: ' + error);
+          throw new Error(error || 'Failed to update report blob');
+        }
+        alert('UpdateReportBlob sorgusu BITDI!');
         setTimeout(() => navigate('/'), 1000);
       }
     } catch (err: any) {

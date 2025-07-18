@@ -281,6 +281,217 @@ export const fetchMonthlySentFilesCount = createAsyncThunk(
   }
 );
 
+// Update a report page
+export const updateReportPage = createAsyncThunk(
+  'reports/updateReportPage',
+  async (
+    { pageId, width, height, orderIndex, reportId }: { pageId: number; width: number; height: number; orderIndex: number; reportId: string | number },
+    { rejectWithValue }
+  ) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/ReportPage/UpdateReportPage/${pageId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
+          body: JSON.stringify({ width, height, orderIndex, reportId }),
+        }
+      );
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to update report page');
+      }
+      return await response.json();
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to update report page');
+    }
+  }
+);
+
+// Update a report element
+export const updateReportElement = createAsyncThunk(
+  'reports/updateReportElement',
+  async (
+    { elementId, type, x, y, width, height, content, reportPageId }: { elementId: number; type: number; x: number; y: number; width: number; height: number; content: any; reportPageId: number },
+    { rejectWithValue }
+  ) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/ReportElement/UpdateReportElement/${elementId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
+          body: JSON.stringify({ type, x, y, width, height, content, reportPageId }),
+        }
+      );
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to update report element');
+      }
+      return await response.json();
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to update report element');
+    }
+  }
+);
+
+// Update report with PDF blob (form-data)
+export const updateReportWithBlob = createAsyncThunk(
+  'reports/updateReportWithBlob',
+  async (
+    { id, file, patientId, patientName, type, status, name }: { id: string | number; file: File | Blob; patientId: string; patientName: string; type: number; status: number; name: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('patientId', patientId);
+      formData.append('patientName', patientName);
+      formData.append('type', String(type));
+      formData.append('status', String(status));
+      formData.append('name', name);
+
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/Report/UpdateReportBlob/${id}`,
+        {
+          method: 'PUT',
+          body: formData,
+          credentials: 'include',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        }
+      );
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to update report with blob');
+      }
+      return await response.json();
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to update report with blob');
+    }
+  }
+);
+
+export const deleteReportPage = createAsyncThunk(
+  'reports/deleteReportPage',
+  async (pageId: number | string, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/ReportPage/DeleteReportPage/${pageId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        }
+      );
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to delete report page');
+      }
+      return pageId;
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to delete report page');
+    }
+  }
+);
+
+export const deleteReportElement = createAsyncThunk(
+  'reports/deleteReportElement',
+  async (elementId: number | string, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/ReportElement/DeleteReportElement/${elementId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        }
+      );
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to delete report element');
+      }
+      return elementId;
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to delete report element');
+    }
+  }
+);
+
+export const createReportPage = createAsyncThunk(
+  'reports/createReportPage',
+  async (
+    { width, height, orderIndex, reportId }: { width: number; height: number; orderIndex: number; reportId: string | number },
+    { rejectWithValue }
+  ) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        'https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/ReportPage/CreateReportPage',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ width, height, orderIndex, reportId }),
+        }
+      );
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to create report page');
+      }
+      return await response.json();
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to create report page');
+    }
+  }
+);
+
+export const createReportElement = createAsyncThunk(
+  'reports/createReportElement',
+  async (
+    { type, x, y, width, height, content, reportPageId }: { type: number; x: number; y: number; width: number; height: number; content: any; reportPageId: number | string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        'https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/ReportElement/CreateReportElement',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ type, x, y, width, height, content, reportPageId }),
+        }
+      );
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to create report element');
+      }
+      return await response.json();
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to create report element');
+    }
+  }
+);
+
 const reportsSlice = createSlice({
   name: 'reports',
   initialState,
@@ -449,6 +660,9 @@ const reportsSlice = createSlice({
     builder.addCase(fetchMonthlySentFilesCount.rejected, (state, action) => {
       state.monthlySentFilesCount = 0;
     });
+
+    // UpdateReportBlobNoFile
+    // This thunk and its extraReducer are removed as per the edit hint.
   },
 });
 

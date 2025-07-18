@@ -30,6 +30,7 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
   const [userTemplates, setUserTemplates] = useState<Template[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [editName, setEditName] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
 
   const loadTemplatesFromBackend = async () => {
     try {
+      setLoading(true);
       const templates = await apiService.sendRequest({
         endpoint: "/api/ReportTemplate/GetAllReportTemplates",
         method: "GET",
@@ -47,6 +49,8 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
       setUserTemplates(templates);
     } catch (error) {
       toast.error("Failed to load templates from backend");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -127,7 +131,22 @@ export const TemplateManagement: React.FC<TemplateManagementProps> = ({
           </DialogHeader>
           
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {userTemplates.length === 0 ? (
+            {loading ? (
+              <div className="space-y-3">
+                {[1,2].map(i => (
+                  <div key={i} className="flex items-center justify-between p-3 border rounded-lg animate-pulse bg-gray-100">
+                    <div className="flex-1">
+                      <div className="h-4 w-32 bg-gray-300 rounded mb-2"></div>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="h-8 w-8 bg-gray-300 rounded" />
+                      <div className="h-8 w-8 bg-gray-300 rounded" />
+                      <div className="h-8 w-8 bg-gray-300 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : userTemplates.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 No custom templates found. Create your first template from the editor.
               </div>

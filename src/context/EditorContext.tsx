@@ -5,13 +5,53 @@ import { v4 as uuidv4 } from "uuid";
 import { getTemplateById } from "@/lib/templates";
 import { toast } from "sonner";
 import { useAppDispatch } from "@/redux/hooks";
-import { updateReportPages } from "@/redux/slices/reportsSlice";
+import { updateReportPages, updateExistingReport, updateReportPage, updateReportElement, updateReportWithBlob } from '@/redux/slices/reportsSlice';
 import { apiService } from "@/services/apiService";
 import { useSearchParams } from "react-router-dom";
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // A4 dimensions (in pixels at 72 DPI)
 const A4_WIDTH_PX = 595;
 const A4_HEIGHT_PX = 842;
+
+// Move these utility functions above editorReducer so they are in scope everywhere
+function mapElementType(type: number | string): string {
+  if (typeof type === 'number') {
+    switch (type) {
+      case 0: return 'text';
+      case 1: return 'chart';
+      case 2: return 'table';
+      default: return 'text';
+    }
+  }
+  return String(type);
+}
+
+function getBackendType(type: string): number {
+  switch (String(type)) {
+    case "text": return 0;
+    case "chart": return 1;
+    case "table": return 2;
+    default: return 0;
+  }
+}
+
+function normalizeChartContent(content: any) {
+  if (!content) return { type: 'bar', data: [], title: '' };
+  // Köhnə format: {labels, datasets}
+  if (content.data && content.data.labels && content.data.datasets) {
+    return {
+      ...content,
+      data: content.data.labels.map((label: string, idx: number) => ({
+        name: label,
+        value: content.data.datasets[0]?.data?.[idx] ?? 0,
+      })),
+    };
+  }
+  // Array formatdadırsa, olduğu kimi saxla
+  return content;
+}
 
 type EditorAction =
   | { type: "ADD_ELEMENT"; payload: { element: ElementData; pageIndex?: number } }
@@ -487,6 +527,11 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [deletedPages, setDeletedPages] = useState<number[]>([]);
   const [deletedElements, setDeletedElements] = useState<number[]>([]);
 
+  // Move setCurrentPage to the top of EditorProvider's hooks
+  const setCurrentPage = useCallback((pageIndex: number) => {
+    dispatch({ type: "SET_CURRENT_PAGE", payload: { pageIndex } });
+  }, []);
+
   useEffect(() => {
     if (state.activeReportId && state.canvasState.pages) {
       const activeReportInContextCache = state.openReports.find(r => r.id === state.activeReportId);
@@ -716,74 +761,175 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     dispatch({ type: "LOAD_TEMPLATE", payload: { templateId } });
   }, []);
 
-  const saveCanvas = useCallback(async (): Promise<void> => { 
-    if (state.activeReportId && state.canvasState.pages) {
-      console.log("EditorContext: saveCanvas dispatching updateReportPages.");
-      reduxDispatch(updateReportPages({
-        reportId: state.activeReportId,
-        pages: JSON.parse(JSON.stringify(state.canvasState.pages))
-      }));
-      
-      // If we're editing a report, also sync all changes to backend
-      if (!templateId && state.activeReportId) {
-        try {
-          console.log("🔄 Syncing all report changes to backend...");
-          
-          // Update all pages and their elements
-          for (let pageIndex = 0; pageIndex < state.canvasState.pages.length; pageIndex++) {
-            const page = state.canvasState.pages[pageIndex];
-            
-            if (page.backendId) {
-              // Update existing page
-              await apiService.sendRequest({
-                endpoint: `/api/ReportPage/UpdateReportPage/${page.backendId}`,
-                method: 'PUT',
-                body: {
-                  width: page.width || 595,
-                  height: page.height || 842,
-                  orderIndex: pageIndex + 1,
-                  reportId: state.activeReportId
-                }
-              });
-              
-              // Update all elements on this page
-              for (const element of page.elements) {
-                if (element.backendId) {
-                  let typeId = 0;
-                  if (element.type === 'text') typeId = 0;
-                  else if (element.type === 'chart') typeId = 1;
-                  else if (element.type === 'table') typeId = 2;
-                  
-                  await apiService.sendRequest({
-                    endpoint: `/api/ReportElement/UpdateReportElement/${element.backendId}`,
-                    method: "PUT",
-                    body: {
-                      type: typeId,
-                      x: element.x,
-                      y: element.y,
-                      width: element.width,
-                      height: element.height,
-                      content: element.content,
-                      reportPageId: page.backendId
-                    }
-                  });
-                }
-              }
-            }
-          }
-          
-          console.log("✅ All report changes synced to backend successfully!");
-        } catch (error: any) {
-          console.error("❌ Error syncing report changes to backend:", error);
-          toast.error("Backend-ə sinxronizasiya xətası baş verdi");
-        }
+  // Unified PDF generation function
+  const generateReportPdfArrayBuffer = async (canvasState, setCurrentPage, activeReport) => {
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const currentPageIndex = canvasState.currentPageIndex;
+    for (let i = 0; i < canvasState.pages.length; i++) {
+      if (i > 0) pdf.addPage();
+      setCurrentPage(i);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const canvasContainer = document.querySelector('.canvas-container') as HTMLElement;
+      if (!canvasContainer) continue;
+      try {
+        const canvas = await html2canvas(canvasContainer, {
+          scale: 1.5,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          imageTimeout: 15000,
+        });
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth * ratio, imgHeight * ratio, undefined, 'MEDIUM');
+      } catch (err) {
+        console.error(`Error capturing page ${i+1}:`, err);
       }
-      
-      toast.success("Report changes saved"); 
+    }
+    setCurrentPage(currentPageIndex);
+    return pdf.output('arraybuffer');
+  };
+
+  // Use unified PDF generation in saveCanvas
+  const generateReportPdfBlob = async (canvasState, setCurrentPage, activeReport) => {
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const currentPageIndex = canvasState.currentPageIndex;
+    for (let i = 0; i < canvasState.pages.length; i++) {
+      if (i > 0) pdf.addPage();
+      setCurrentPage(i);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const canvasContainer = document.querySelector('.canvas-container') as HTMLElement;
+      if (!canvasContainer) {
+        alert('canvas-container tapılmadı! PDF generasiya olunmur!');
+        throw new Error('canvas-container tapılmadı!');
+      }
+      try {
+        const canvas = await html2canvas(canvasContainer, {
+          scale: 1.5,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          imageTimeout: 15000,
+        });
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth * ratio, imgHeight * ratio, undefined, 'MEDIUM');
+      } catch (err) {
+        console.error(`Error capturing page ${i+1}:`, err);
+      }
+    }
+    setCurrentPage(currentPageIndex);
+    alert('generateReportPdfBlob: BİTİR və return edir');
+    return pdf.output('blob');
+  };
+
+  // Add helper to send UpdateReportBlob with file
+  const sendUpdateReportBlob = async (activeReport, pdfBlob) => {
+    alert('sendUpdateReportBlob: BAŞLAYIR');
+    console.log('sendUpdateReportBlob: BAŞLAYIR', { activeReport, pdfBlob });
+    const filename = `${activeReport.name || 'report'}.pdf`;
+    const formData = new FormData();
+    formData.append('file', pdfBlob, filename);
+    formData.append('patientId', activeReport.patientId);
+    formData.append('patientName', activeReport.patientName);
+    formData.append('type', '0');
+    formData.append('status', '1');
+    formData.append('name', activeReport.name);
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(
+      `https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/Report/UpdateReportBlob/${activeReport.id}`,
+      {
+        method: 'PUT',
+        body: formData,
+        credentials: 'include',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      }
+    );
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to update report blob');
+    }
+    alert('sendUpdateReportBlob: BİTDİ');
+    console.log('sendUpdateReportBlob: BİTDİ');
+    return await response.json();
+  };
+
+  const saveCanvas = useCallback(async (): Promise<void> => { 
+    console.log('saveCanvas started');
+    if (state.activeReportId && state.canvasState.pages) {
+      try {
+        const activeReport = state.openReports.find(r => r.id === state.activeReportId);
+        if (!activeReport) {
+          toast.error("No active report found!");
+          console.error("No active report found!");
+          return;
+        }
+        // 1. UpdateReportPage for all pages
+        console.log("[saveCanvas] Updating all report pages...");
+        await Promise.all(
+          state.canvasState.pages
+            .filter(page => page.backendId)
+            .map((page, pageIndex) => reduxDispatch(updateReportPage({
+              pageId: page.backendId,
+              width: page.width || 595,
+              height: page.height || 842,
+              orderIndex: pageIndex + 1,
+              reportId: activeReport.id
+            })))
+        );
+        // 2. UpdateReportElement for all elements
+        console.log("[saveCanvas] Updating all report elements...");
+        await Promise.all(
+          state.canvasState.pages.flatMap(page =>
+            (page.elements || [])
+              .filter(element => element.backendId)
+              .map(element => {
+                let typeId = 0;
+                if (element.type === 'text') typeId = 0;
+                else if (element.type === 'chart') typeId = 1;
+                else if (element.type === 'table') typeId = 2;
+                return reduxDispatch(updateReportElement({
+                  elementId: element.backendId,
+                  type: typeId,
+                  x: element.x,
+                  y: element.y,
+                  width: element.width,
+                  height: element.height,
+                  content: element.content,
+                  reportPageId: page.backendId
+                }));
+              })
+          )
+        );
+        // 3. Generate PDF and send UpdateReportBlob
+        console.log("[saveCanvas] Generating PDF and sending UpdateReportBlob...");
+        const pdfBlob = await generateReportPdfBlob(state.canvasState, setCurrentPage, activeReport);
+        alert('PDF generasiya olundu, indi sendUpdateReportBlob çağırılır');
+        await sendUpdateReportBlob(activeReport, pdfBlob);
+        console.log("[saveCanvas] All updates completed (with UpdateReportBlob). Test successful.");
+        toast.success("Report changes saved (with UpdateReportBlob)"); 
+      } catch (error: any) {
+        alert('saveCanvas catch: ' + (error?.message || error));
+        console.error("❌ Error syncing report changes to backend:", error);
+        toast.error("Backend-ə sinxronizasiya xətası baş verdi");
+      }
     } else {
       toast.warning("No active report to save.");
     }
-  }, [state.activeReportId, state.canvasState.pages, reduxDispatch, templateId]);
+  }, [state.activeReportId, state.canvasState.pages, reduxDispatch, templateId, state.openReports, setCurrentPage]);
+
+  // Refactor exportReportPdfBlob to use the unified function
+  const exportReportPdfBlob = async (canvasState, activeReport) => {
+    return generateReportPdfArrayBuffer(canvasState, setCurrentPage, activeReport);
+  };
 
   const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
   const redo = useCallback(() => dispatch({ type: "REDO" }), []);
@@ -805,10 +951,6 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     dispatch({ type: "REMOVE_PAGE", payload: { pageIndex } });
   }, [state.canvasState.pages]);
-
-  const setCurrentPage = useCallback((pageIndex: number) => {
-    dispatch({ type: "SET_CURRENT_PAGE", payload: { pageIndex } });
-  }, []);
 
   const renamePage = useCallback((pageIndex: number, name: string) => {
     if (!state.activeReportId) {
@@ -854,42 +996,3 @@ export const useEditor = (): EditorContextType => {
   }
   return context;
 };
-
-// Type mapping util
-function mapElementType(type: number | string): string {
-  if (typeof type === 'number') {
-    switch (type) {
-      case 0: return 'text';
-      case 1: return 'chart';
-      case 2: return 'table';
-      default: return 'text';
-    }
-  }
-  return String(type);
-}
-
-function getBackendType(type: string): number {
-  switch (String(type)) {
-    case "text": return 0;
-    case "chart": return 1;
-    case "table": return 2;
-    default: return 0;
-  }
-}
-
-// Chart content normalization
-function normalizeChartContent(content: any) {
-  if (!content) return { type: 'bar', data: [], title: '' };
-  // Köhnə format: {labels, datasets}
-  if (content.data && content.data.labels && content.data.datasets) {
-    return {
-      ...content,
-      data: content.data.labels.map((label: string, idx: number) => ({
-        name: label,
-        value: content.data.datasets[0]?.data?.[idx] ?? 0,
-      })),
-    };
-  }
-  // Array formatdadırsa, olduğu kimi saxla
-  return content;
-}
