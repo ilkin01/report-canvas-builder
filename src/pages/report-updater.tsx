@@ -247,14 +247,34 @@ const ReportUpdaterContent = () => {
         );
         if (!response.ok) {
           const error = await response.text();
-          alert('UpdateReportBlob error: ' + error);
-          throw new Error(error || 'Failed to update report blob');
+          console.error('UpdateReportBlob error:', error);
+          
+          // Don't throw error, handle it directly
+          let errorMessage = error;
+          try {
+            if (typeof errorMessage === 'string' && errorMessage.includes('{')) {
+              const errorObj = JSON.parse(errorMessage);
+              errorMessage = errorObj.message || errorMessage;
+            }
+          } catch (parseError) {
+            // If parsing fails, use the original message
+          }
+          
+          // Simplify specific error messages
+          if (errorMessage.includes('2 gündən köhnədir')) {
+            errorMessage = 'Artıq 2 gün keçib deyə silinə bilməz.';
+          } else if (errorMessage.includes('older than 2 days')) {
+            errorMessage = 'Cannot update a report older than 2 days.';
+          }
+          
+          toast.error(errorMessage);
+          return; // Exit early without throwing
         }
         setTimeout(() => navigate('/'), 1000);
       }
     } catch (err: any) {
       console.error("❌ Error during report update:", err);
-      toast.error('Yadda saxlanılarkən xəta baş verdi: ' + (err?.message || err));
+      // Error already handled above, no need to show duplicate notification
     }
   };
 
