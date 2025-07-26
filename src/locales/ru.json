@@ -1,5 +1,63 @@
 
 {
+  "common": {
+    "loading": "Загрузка...",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "add": "Добавить",
+    "search": "Поиск...",
+    "next": "Далее",
+    "previous": "Предыдущий",
+    "prev": "Пред",
+    "close": "Закрыть",
+    "open": "Открыть",
+    "select": "Выбрать",
+    "choose": "Выберите",
+    "create": "Создать",
+    "update": "Обновить",
+    "confirm": "Подтвердить",
+    "back": "Назад",
+    "forward": "Вперед",
+    "upload": "Загрузить",
+    "download": "Скачать",
+    "export": "Экспорт",
+    "import": "Импорт",
+    "error": "Ошибка",
+    "success": "Успех",
+    "warning": "Предупреждение",
+    "info": "Информация",
+    "yes": "Да",
+    "no": "Нет"
+  },
+  "auth": {
+    "login": "Войти",
+    "logout": "Выйти",
+    "email": "Email",
+    "password": "Пароль",
+    "enterEmail": "Введите email",
+    "enterPassword": "Введите ваш пароль",
+    "emailPlaceholder": "пример@email.com",
+    "passwordPlaceholder": "Введите ваш пароль",
+    "loginButton": "Войти",
+    "loggingIn": "Вход...",
+    "loginSuccess": "Успешно вошли в систему!",
+    "loginError": "Произошла ошибка входа",
+    "emailRequired": "Email и пароль обязательны",
+    "invalidEmail": "Введите правильный email",
+    "logoutSuccess": "Успешно вышли из системы",
+    "enterEmailAndPassword": "Введите ваш email и пароль"
+  },
+  "navigation": {
+    "dashboard": "Панель управления",
+    "reports": "Отчеты",
+    "templates": "Шаблоны",
+    "patients": "Пациенты",
+    "settings": "Настройки",
+    "profile": "Профиль",
+    "logout": "Выйти"
+  },
   "dashboard": {
     "title": "Панель Лаборатории",
     "subtitle": "Управляйте ежедневными лабораторными операциями",
@@ -23,7 +81,124 @@
     "recentPatients": "Недавние Пациенты",
     "recentPatientsDescription": "Недавно зарегистрированные пациенты и статус их анализов",
     "selectAnalysisTemplate": "Выберите Шаблон Анализа",
-    "selectTemplateDescription": "Выберите шаблон для создания нового лабораторного анализа"
+    "selectTemplateDescription": "Выберите шаблон для создания нового лабораторного анализа",
+    "greeting": {
+      "morning": "Доброе утро",
+      "afternoon": "Добрый день",
+      "evening": "Добрый вечер"
+    },
+    "quickActions": {
+      "newAnalysis": "Новый Анализ",
+      "newTemplate": "Новый Шаблон",
+      "management": "Управление"
+    },
+    "stats": {
+      "dailyReports": "Ежедневные Отчеты",
+      "monthlyReports": "Количество Месячных Отчетов",
+      "monthlySentFiles": "Месячные Отправленные Файлы",
+      "sendFileToPatient": "Отправить файл пациенту",
+      "todayReports": "Сегодняшние отчеты"
+    },
+    "tabs": {
+      "patientReports": "Отчеты Пациентов",
+      "patientFiles": "Файлы Пациентов"
+    },
+    "patientsList": {
+      "title": "Список Пациентов",
+      "description": "Недавно добавленные пациенты",
+      "newest": "Новейшие",
+      "oldest": "Старейшие"
+    },
+    "activity": {
+      "recentActivities": "Недавние Действия",
+      "newNotifications": "новых уведомлений",
+      "lastLogin": "Последний вход",
+      "createNewAnalysis": "Создать новый анализ",
+      "createNewTemplate": "Создать новый шаблон",
+      "manageTemplates": "Управлять шаблонами",
+      "sendFile": "Отправить файл"
+    }
+  },
+  "header": {
+    "undo": "Отменить",
+    "redo": "Повторить",
+    "new": "Новый",
+    "pdf": "PDF",
+    "excel": "Excel",
+    "chooseTemplate": "Выберите Шаблон",
+    "user": "Пользователь",
+    "exportPDF": "Экспорт в PDF",
+    "exportExcel": "Экспорт в Excel",
+    "newReport": "Новый Отчет"
+  },
+  "sidebar": {
+    "addElements": "Добавить Элементы",
+    "text": "Текст",
+    "chart": "График",
+    "table": "Таблица",
+    "elementProperties": "Свойства Элемента",
+    "selectElement": "Выберите элемент для редактирования его свойств"
+  },
+  "templates": {
+    "selectTemplate": "Выберите Шаблон",
+    "reportName": "Название Отчета",
+    "enterReportName": "Введите название отчета",
+    "searchPatient": "Поиск Пациента",
+    "searchPatientPlaceholder": "Поиск пациента...",
+    "selectedPatient": "Выбранный",
+    "change": "Изменить",
+    "noPatientFound": "Пациент не найден",
+    "createReport": "Создать Отчет",
+    "loadingTemplates": "Загрузка шаблонов...",
+    "template": "Шаблон",
+    "selectTemplateFirst": "Пожалуйста, сначала выберите шаблон",
+    "enterReportNameFirst": "Пожалуйста, введите название отчета",
+    "selectPatientFirst": "Пожалуйста, выберите пациента",
+    "patientInfo": "Эти пациенты направлены приемной",
+    "nameAndSurname": "Имя Фамилия",
+    "fatherName": "Отчество",
+    "birthDate": "Рождение",
+    "finCode": "FIN",
+    "previousPage": "Предыдущая страница",
+    "nextPage": "Следующая страница"
+  },
+  "settings": {
+    "title": "Настройки",
+    "backToDashboard": "Назад к Панели",
+    "profile": "Профиль",
+    "name": "Имя",
+    "surname": "Фамилия",
+    "phone": "Телефон",
+    "email": "Email",
+    "edit": "Редактировать",
+    "save": "Сохранить",
+    "profilePhoto": "Фото Профиля",
+    "saveProfilePhoto": "Сохранить фото профиля",
+    "profilePhotoSaved": "Фото профиля успешно сохранено!",
+    "profilePhotoError": "Не удалось сохранить фото профиля!",
+    "profileSaved": "Информация профиля успешно сохранена!",
+    "profileSaveError": "Не удалось сохранить информацию профиля!"
+  },
+  "patients": {
+    "patientFiles": "Файлы Пациентов",
+    "patientFilesDescription": "Файлы, отправленные пациентам",
+    "recentPatients": "Недавние Пациенты"
+  },
+  "editor": {
+    "canvas": "Холст",
+    "elements": "Элементы",
+    "properties": "Свойства"
+  },
+  "messages": {
+    "noActiveReport": "Нет активного отчета для экспорта",
+    "preparingPDF": "Подготовка экспорта PDF...",
+    "pdfExported": "PDF успешно экспортирован",
+    "pdfExportFailed": "Не удалось экспортировать PDF",
+    "excelExported": "Excel файл успешно экспортирован",
+    "excelExportFailed": "Не удалось экспортировать Excel",
+    "noTableData": "Нет данных таблицы для экспорта",
+    "couldNotFindCanvas": "Не удалось найти холст отчета",
+    "loadingError": "Ошибка загрузки начальных данных"
   },
   "days": {
     "monday": "Пон",
@@ -58,5 +233,17 @@
     "value": "Значение",
     "patients": "Пациенты",
     "analyses": "Анализы"
+  },
+  "elements": {
+    "sampleText": "Образец Текста",
+    "sampleChart": "Образец Графика",
+    "addComment": "Добавьте ваш комментарий здесь",
+    "sampleTable": "Образец Таблицы",
+    "column": "Столбец",
+    "row": "Строка"
+  },
+  "company": {
+    "name": "Inframed Life",
+    "loginTitle": "Вход, HospitalLab"
   }
 }

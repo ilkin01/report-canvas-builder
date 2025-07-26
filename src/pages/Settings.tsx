@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Settings = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const isLoading = useAppSelector(state => state.auth.isLoading);
   const [profile, setProfile] = useState({
     name: "",
@@ -51,7 +53,7 @@ const Settings = () => {
     if (e.target.files && e.target.files[0]) {
       setAvatarFile(e.target.files[0]);
       setProfile((prev) => ({ ...prev, avatarUrl: URL.createObjectURL(e.target.files[0]) }));
-      toast.success("Profil şəkli yadda saxlanıldı!");
+      toast.success(t('settings.profilePhotoSaved'));
     }
   };
 
@@ -65,16 +67,16 @@ const Settings = () => {
     try {
       const resultAction = await dispatch(uploadProfilePhoto(avatarFile));
       if (uploadProfilePhoto.fulfilled.match(resultAction)) {
-        toast.success("Profil şəkli uğurla yadda saxlanıldı!");
+        toast.success(t('settings.profilePhotoSaved'));
         setAvatarFile(null);
         if (resultAction.payload?.avatarUrl) {
           setProfile((prev) => ({ ...prev, avatarUrl: resultAction.payload.avatarUrl }));
         }
       } else {
-        toast.error("Profil şəklini saxlamaq mümkün olmadı!");
+        toast.error(t('settings.profilePhotoError'));
       }
     } catch (err) {
-      toast.error("Profil şəklini saxlamaq mümkün olmadı!");
+      toast.error(t('settings.profilePhotoError'));
     }
     setSaving(false);
   };
@@ -89,13 +91,13 @@ const Settings = () => {
         phoneNumber: profile.phoneNumber,
       }));
       if (updateUserProfile.fulfilled.match(resultAction)) {
-        toast.success("Profil məlumatları uğurla yadda saxlanıldı!");
+        toast.success(t('settings.profileSaved'));
         setEditMode(false);
       } else {
-        toast.error("Profil məlumatlarını saxlamaq mümkün olmadı!");
+        toast.error(t('settings.profileSaveError'));
       }
     } catch (err) {
-      toast.error("Profil məlumatlarını saxlamaq mümkün olmadı!");
+      toast.error(t('settings.profileSaveError'));
     }
     setSaving(false);
   };
@@ -108,7 +110,7 @@ const Settings = () => {
           onClick={() => navigate("/")}
           className="px-4 py-1 rounded-md border border-blue-300 text-blue-700 bg-white font-semibold shadow-sm hover:bg-blue-50 transition-all text-sm"
         >
-          ← Back to Dashboard
+          ← {t('settings.backToDashboard')}
         </button>
       </div>
       <div className="w-full max-w-4xl space-y-8">
@@ -135,26 +137,26 @@ const Settings = () => {
                 onClick={saveAvatar}
                 type="button"
               >
-                {saving ? "Yüklənir..." : "Profil şəklini yadda saxla"}
+                {saving ? t('common.loading') : t('settings.saveProfilePhoto')}
               </Button>
               {/* Removed name and email text under avatar for a cleaner look */}
             </div>
             {/* Profile Fields */}
             <form className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-gray-500 text-sm mb-1">Ad</label>
+                <label className="block text-gray-500 text-sm mb-1">{t('settings.name')}</label>
                 <Input name="name" value={profile.name} onChange={handleProfileChange} disabled={!editMode} className="rounded-lg bg-gray-50 border-0 focus:ring-2 focus:ring-blue-200 h-12" />
               </div>
               <div>
-                <label className="block text-gray-500 text-sm mb-1">Soyad</label>
+                <label className="block text-gray-500 text-sm mb-1">{t('settings.surname')}</label>
                 <Input name="surname" value={profile.surname} onChange={handleProfileChange} disabled={!editMode} className="rounded-lg bg-gray-50 border-0 focus:ring-2 focus:ring-blue-200 h-12" />
               </div>
               <div>
-                <label className="block text-gray-500 text-sm mb-1">Telefon</label>
+                <label className="block text-gray-500 text-sm mb-1">{t('settings.phone')}</label>
                 <Input name="phoneNumber" value={profile.phoneNumber} onChange={handleProfileChange} disabled={!editMode} className="rounded-lg bg-gray-50 border-0 focus:ring-2 focus:ring-blue-200 h-12" />
               </div>
               <div>
-                <label className="block text-gray-500 text-sm mb-1">Email</label>
+                <label className="block text-gray-500 text-sm mb-1">{t('settings.email')}</label>
                 <Input name="email" value={profile.email} onChange={handleProfileChange} disabled={!editMode} className="rounded-lg bg-gray-50 border-0 focus:ring-2 focus:ring-blue-200 h-12" />
               </div>
             </form>
@@ -162,12 +164,12 @@ const Settings = () => {
             <div className="flex flex-col items-end md:items-center md:justify-center md:w-32 mt-4 md:mt-0">
               {!editMode ? (
                 <Button className="w-24 h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold" onClick={() => setEditMode(true)}>
-                  Edit
+                  {t('settings.edit')}
                 </Button>
               ) : (
                 <Button className="w-24 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold" onClick={handleSave} disabled={saving || isLoading}>
                   {saving ? <span className="animate-spin mr-2 inline-block w-5 h-5 border-2 border-white border-t-green-400 rounded-full align-middle"></span> : null}
-                  Save
+                  {t('settings.save')}
                 </Button>
               )}
             </div>

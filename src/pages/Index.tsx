@@ -48,11 +48,13 @@ import { Input } from "@/components/ui/input";
 import PatientFilesList from '@/components/patients/PatientFilesList';
 import { fetchReportStats } from '@/redux/slices/reportsSlice';
 import { fetchMonthlySentFilesCount } from '@/redux/slices/reportsSlice';
+import { useTranslation } from "react-i18next";
 
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showTemplateManagement, setShowTemplateManagement] = useState(false);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'reports' | 'files'>('reports');
   const [sort, setSort] = useState(true);
   const [patientReports, setPatientReports] = useState([]);
@@ -72,25 +74,25 @@ const Index = () => {
   // Chart config
   const chartConfig = {
     value: {
-      label: "Dəyər",
+      label: t('chartLabels.value'),
       color: "#3B82F6",
     },
     patients: {
-      label: "Pasientlər",
+      label: t('chartLabels.patients'),
       color: "#10B981",
     },
     analyses: {
-      label: "Analizlər",
+      label: t('chartLabels.analyses'),
       color: "#3B82F6",
     },
   };
 
   // User adını al
   const getUserName = () => {
-    if (!user || user.role !== 'HospitalLab') return "İstifadəçi";
+    if (!user || user.role !== 'HospitalLab') return t('header.user');
     const name = user.name || "";
     const surname = user.surname || "";
-    return `${name} ${surname}`.trim() || "İstifadəçi";
+    return `${name} ${surname}`.trim() || t('header.user');
   };
 
   // User adının baş hərflərini al
@@ -108,11 +110,11 @@ const Index = () => {
     let greeting = "";
     
     if (hours < 12) {
-      greeting = "Günaydın";
+      greeting = t('dashboard.greeting.morning');
     } else if (hours < 18) {
-      greeting = "Günortanız xeyr";
+      greeting = t('dashboard.greeting.afternoon');
     } else {
-      greeting = "Axşamınız xeyr";
+      greeting = t('dashboard.greeting.evening');
     }
     
     return greeting;
@@ -165,9 +167,9 @@ const Index = () => {
   ];
 
   const quickStats = [
-    { title: 'Günlük Reportlar', value: String(reportStats?.dailyReportCount ?? 0), icon: BarChart3, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { title: 'Aylıq Reportların sayı', value: String(reportStats?.monthlyReportCount ?? 0), icon: Calendar, color: 'text-orange-600', bgColor: 'bg-orange-50' },
-    { title: 'Aylıq göndərilən fayllar', value: String(monthlySentFilesCount ?? 0), icon: Download, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+    { title: t('dashboard.stats.dailyReports'), value: String(reportStats?.dailyReportCount ?? 0), icon: BarChart3, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { title: t('dashboard.stats.monthlyReports'), value: String(reportStats?.monthlyReportCount ?? 0), icon: Calendar, color: 'text-orange-600', bgColor: 'bg-orange-50' },
+    { title: t('dashboard.stats.monthlySentFiles'), value: String(monthlySentFilesCount ?? 0), icon: Download, color: 'text-purple-600', bgColor: 'bg-purple-50' },
   ];
   
   useEffect(() => {
@@ -178,7 +180,7 @@ const Index = () => {
       dispatch(fetchReportStats()),
       dispatch(fetchMonthlySentFilesCount()),
     ]).catch(err => {
-      toast.error("Başlangıç verileri yüklenirken hata oluştu");
+      toast.error(t('messages.loadingError'));
       console.error("Error loading initial data:", err);
     });
   }, [dispatch]);
@@ -269,7 +271,7 @@ const Index = () => {
                       <div className="p-3 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
                         <TestTube className="h-6 w-6" />
                       </div>
-                      <span className="font-medium">Yeni Analiz</span>
+                      <span className="font-medium">{t('dashboard.quickActions.newAnalysis')}</span>
                     </div>
                   </Button>
 
@@ -282,7 +284,7 @@ const Index = () => {
                       <div className="p-3 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
                         <PenTool className="h-6 w-6" />
                       </div>
-                      <span className="font-medium">Yeni Şablon</span>
+                      <span className="font-medium">{t('dashboard.quickActions.newTemplate')}</span>
                     </div>
                   </Button>
 
@@ -295,7 +297,7 @@ const Index = () => {
                       <div className="p-3 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
                         <Settings className="h-6 w-6" />
                       </div>
-                      <span className="font-medium">İdarəetmə</span>
+                      <span className="font-medium">{t('dashboard.quickActions.management')}</span>
                     </div>
                   </Button>
                 </div>
@@ -324,7 +326,7 @@ const Index = () => {
                       className="w-full h-20 bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 text-lg font-semibold rounded-xl"
                       style={{ minWidth: 320, maxWidth: 380 }}
                     >
-                      Send a file to patient
+                      {t('dashboard.stats.sendFileToPatient')}
                     </Button>
                   </div>
                 </div>
@@ -335,13 +337,13 @@ const Index = () => {
                     className={`px-4 py-2 rounded-t-lg font-semibold border-b-2 transition ${activeTab === 'reports' ? 'border-blue-600 text-blue-700 bg-white' : 'border-transparent text-gray-500 bg-gray-100 hover:bg-gray-200'}`}
                     onClick={() => setActiveTab('reports')}
                   >
-                    Patient Reports
+                    {t('dashboard.tabs.patientReports')}
                   </button>
                   <button
                     className={`px-4 py-2 rounded-t-lg font-semibold border-b-2 transition ${activeTab === 'files' ? 'border-blue-600 text-blue-700 bg-white' : 'border-transparent text-gray-500 bg-gray-100 hover:bg-gray-200'}`}
                     onClick={() => setActiveTab('files')}
                   >
-                    Patient Files
+                    {t('dashboard.tabs.patientFiles')}
                   </button>
                 </div>
 
@@ -351,10 +353,10 @@ const Index = () => {
                     <CardHeader>
                       <CardTitle className="flex items-center">
                         <Users className="h-5 w-5 mr-2 text-green-600" />
-                        Pasientlər Siyahısı
+                        {t('dashboard.patientsList.title')}
                         <Input
                           type="text"
-                          placeholder="Axtar..."
+                          placeholder={t('common.search')}
                           value={searchName}
                           onChange={e => {
                             setSearchName(e.target.value);
@@ -367,14 +369,14 @@ const Index = () => {
                           onClick={() => setSort((prev) => !prev)}
                           title="Sort"
                         >
-                          {sort ? "Ən yeni" : "Ən köhnə"}
+                          {sort ? t('dashboard.patientsList.newest') : t('dashboard.patientsList.oldest')}
                         </button>
                       </CardTitle>
-                      <CardDescription>Son əlavə edilən pasientlər</CardDescription>
+                      <CardDescription>{t('dashboard.patientsList.description')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       {loadingReports ? (
-                        <div className="py-8 text-center text-gray-500">Yüklənir...</div>
+                        <div className="py-8 text-center text-gray-500">{t('common.loading')}</div>
                       ) : (
                         <>
                           <PatientsList onReportSelect={() => setIsEditing(true)} reports={patientReports} />
@@ -386,7 +388,7 @@ const Index = () => {
                                 onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
                                 disabled={pageIndex === 0}
                               >
-                                Prev
+                                {t('common.prev')}
                               </button>
                               <span className="mx-2 text-base">{pageIndex + 1} / {totalPages}</span>
                               <button
@@ -394,7 +396,7 @@ const Index = () => {
                                 onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
                                 disabled={pageIndex >= totalPages - 1}
                               >
-                                Next
+                                {t('common.next')}
                               </button>
                             </div>
                           ) : null}
@@ -407,9 +409,9 @@ const Index = () => {
                     <CardHeader>
                       <CardTitle className="flex items-center">
                         <Users className="h-5 w-5 mr-2 text-blue-600" />
-                        Patient Files
+                        {t('patients.patientFiles')}
                       </CardTitle>
-                      <CardDescription>Pasiyentlərə göndərilən fayllar</CardDescription>
+                      <CardDescription>{t('patients.patientFilesDescription')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <PatientFilesList />
@@ -428,9 +430,9 @@ const Index = () => {
               <Dialog open={showTemplateGallery} onOpenChange={setShowTemplateGallery}>
                 <DialogContent className="max-w-2xl w-full">
                   <DialogHeader>
-                    <DialogTitle>Şablon Seçin</DialogTitle>
+                    <DialogTitle>{t('templates.selectTemplate')}</DialogTitle>
                     <DialogDescription>
-                      Yeni analiz üçün şablon seçin
+                      {t('dashboard.selectTemplateDescription')}
                     </DialogDescription>
                   </DialogHeader>
                   <TemplateGallery onSelectTemplate={() => setShowTemplateGallery(false)} />
@@ -452,3 +454,4 @@ const Index = () => {
 };
 
 export default Index;
+

@@ -1,5 +1,63 @@
 
 {
+  "common": {
+    "loading": "Yüklənir...",
+    "save": "Yadda saxla",
+    "cancel": "Ləğv et",
+    "delete": "Sil",
+    "edit": "Redaktə et",
+    "add": "Əlavə et",
+    "search": "Axtar...",
+    "next": "Növbəti",
+    "previous": "Əvvəlki",
+    "prev": "Əvv",
+    "close": "Bağla",
+    "open": "Aç",
+    "select": "Seç",
+    "choose": "Seçin",
+    "create": "Yarat",
+    "update": "Yenilə",
+    "confirm": "Təsdiq et",
+    "back": "Geri",
+    "forward": "İrəli",
+    "upload": "Yüklə",
+    "download": "Endir",
+    "export": "İxrac et",
+    "import": "İdxal et",
+    "error": "Xəta",
+    "success": "Uğurlu",
+    "warning": "Xəbərdarlıq",
+    "info": "Məlumat",
+    "yes": "Bəli",
+    "no": "Xeyr"
+  },
+  "auth": {
+    "login": "Giriş",
+    "logout": "Çıxış",
+    "email": "Email",
+    "password": "Şifrə",
+    "enterEmail": "Email daxil edin",
+    "enterPassword": "Şifrənizi daxil edin",
+    "emailPlaceholder": "nümunə@email.com",
+    "passwordPlaceholder": "Şifrənizi daxil edin",
+    "loginButton": "Daxil ol",
+    "loggingIn": "Daxil olunur...",
+    "loginSuccess": "Uğurla daxil oldunuz!",
+    "loginError": "Giriş zamanı xəta baş verdi",
+    "emailRequired": "Email və şifrə tələb olunur",
+    "invalidEmail": "Düzgün email daxil edin",
+    "logoutSuccess": "Uğurla çıxış etdiniz",
+    "enterEmailAndPassword": "Email və şifrənizi daxil edin"
+  },
+  "navigation": {
+    "dashboard": "Ana səhifə",
+    "reports": "Hesabatlar",
+    "templates": "Şablonlar",
+    "patients": "Xəstələr",
+    "settings": "Ayarlar",
+    "profile": "Profil",
+    "logout": "Çıxış"
+  },
   "dashboard": {
     "title": "Laboratoriya Dashboard",
     "subtitle": "Gündəlik laboratoriya əməliyyatlarınızı idarə edin",
@@ -23,11 +81,128 @@
     "recentPatients": "Son Xəstələr",
     "recentPatientsDescription": "Ən son qeydiyyatdan keçən xəstələr və analiz vəziyyətləri",
     "selectAnalysisTemplate": "Analiz Şablonu Seçin",
-    "selectTemplateDescription": "Yeni laboratoriya analizi yaratmaq üçün şablon seçin"
+    "selectTemplateDescription": "Yeni laboratoriya analizi yaratmaq üçün şablon seçin",
+    "greeting": {
+      "morning": "Günaydın",
+      "afternoon": "Günortanız xeyr",
+      "evening": "Axşamınız xeyr"
+    },
+    "quickActions": {
+      "newAnalysis": "Yeni Analiz",
+      "newTemplate": "Yeni Şablon",
+      "management": "İdarəetmə"
+    },
+    "stats": {
+      "dailyReports": "Günlük Reportlar",
+      "monthlyReports": "Aylıq Reportların sayı",
+      "monthlySentFiles": "Aylıq göndərilən fayllar",
+      "sendFileToPatient": "Xəstəyə fayl göndər",
+      "todayReports": "Bugünkü hesabatlar"
+    },
+    "tabs": {
+      "patientReports": "Xəstə Reportları",
+      "patientFiles": "Xəstə Faylları"
+    },
+    "patientsList": {
+      "title": "Pasientlər Siyahısı",
+      "description": "Son əlavə edilən pasientlər",
+      "newest": "Ən yeni",
+      "oldest": "Ən köhnə"
+    },
+    "activity": {
+      "recentActivities": "Son Fəaliyyətlər",
+      "newNotifications": "yeni bildiriş",
+      "lastLogin": "Son giriş",
+      "createNewAnalysis": "Yeni analiz yarat",
+      "createNewTemplate": "Yeni şablon yarat",
+      "manageTemplates": "Şablonları idarə et",
+      "sendFile": "Fayl göndər"
+    }
+  },
+  "header": {
+    "undo": "Geri al",
+    "redo": "İrəli al",
+    "new": "Yeni",
+    "pdf": "PDF",
+    "excel": "Excel",
+    "chooseTemplate": "Şablon Seçin",
+    "user": "İstifadəçi",
+    "exportPDF": "PDF olaraq ixrac et",
+    "exportExcel": "Excel olaraq ixrac et",
+    "newReport": "Yeni Hesabat"
+  },
+  "sidebar": {
+    "addElements": "Elementlər Əlavə Et",
+    "text": "Mətn",
+    "chart": "Çart",
+    "table": "Cədvəl",
+    "elementProperties": "Element Xüsusiyyətləri",
+    "selectElement": "Xüsusiyyətlərini redaktə etmək üçün element seçin"
+  },
+  "templates": {
+    "selectTemplate": "Şablon Seçin",
+    "reportName": "Hesabat Adı",
+    "enterReportName": "Hesabat adı daxil edin",
+    "searchPatient": "Xəstə Axtar",
+    "searchPatientPlaceholder": "Pasiyent axtar...",
+    "selectedPatient": "Seçilmiş",
+    "change": "Dəyiş",
+    "noPatientFound": "Heç bir pasiyent tapılmadı",
+    "createReport": "Hesabat Yarat",
+    "loadingTemplates": "Şablonlar yüklənir...",
+    "template": "Şablon",
+    "selectTemplateFirst": "Əvvəlcə şablon seçin",
+    "enterReportNameFirst": "Hesabat adı daxil edin",
+    "selectPatientFirst": "Pasiyent seçin",
+    "patientInfo": "Bu pasiyentlər reception tərəfindən yönləndirilib",
+    "nameAndSurname": "Ad Soyad",
+    "fatherName": "Ata adı",
+    "birthDate": "Doğum",
+    "finCode": "FIN",
+    "previousPage": "Əvvəlki səhifə",
+    "nextPage": "Növbəti səhifə"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "backToDashboard": "Ana səhifəyə qayıt",
+    "profile": "Profil",
+    "name": "Ad",
+    "surname": "Soyad",
+    "phone": "Telefon",
+    "email": "Email",
+    "edit": "Redaktə",
+    "save": "Yadda saxla",
+    "profilePhoto": "Profil şəkli",
+    "saveProfilePhoto": "Profil şəklini yadda saxla",
+    "profilePhotoSaved": "Profil şəkli uğurla yadda saxlanıldı!",
+    "profilePhotoError": "Profil şəklini saxlamaq mümkün olmadı!",
+    "profileSaved": "Profil məlumatları uğurla yadda saxlanıldı!",
+    "profileSaveError": "Profil məlumatlarını saxlamaq mümkün olmadı!"
+  },
+  "patients": {
+    "patientFiles": "Xəstə Faylları",
+    "patientFilesDescription": "Pasiyentlərə göndərilən fayllar",
+    "recentPatients": "Son Xəstələr"
+  },
+  "editor": {
+    "canvas": "Tuval",
+    "elements": "Elementlər",
+    "properties": "Xüsusiyyətlər"
+  },
+  "messages": {
+    "noActiveReport": "İxrac etmək üçün aktiv hesabat yoxdur",
+    "preparingPDF": "PDF ixracı hazırlanır...",
+    "pdfExported": "PDF uğurla ixrac edildi",
+    "pdfExportFailed": "PDF ixracı uğursuz oldu",
+    "excelExported": "Excel faylı uğurla ixrac edildi",
+    "excelExportFailed": "Excel ixracı uğursuz oldu",
+    "noTableData": "İxrac etmək üçün cədvəl məlumatları yoxdur",
+    "couldNotFindCanvas": "Hesabat tuvalı tapıla bilmədi",
+    "loadingError": "Başlangıç verileri yüklenirken hata oluştu"
   },
   "days": {
     "monday": "Baz",
-    "tuesday": "Çax",
+    "tuesday": "Çax", 
     "wednesday": "Çər",
     "thursday": "Cax",
     "friday": "Cüm",
@@ -58,5 +233,17 @@
     "value": "Dəyər",
     "patients": "Xəstələr",
     "analyses": "Analizlər"
+  },
+  "elements": {
+    "sampleText": "Nümunə Mətn",
+    "sampleChart": "Nümunə Çart",
+    "addComment": "Şərhini buraya əlavə et",
+    "sampleTable": "Nümunə Cədvəl",
+    "column": "Sütun",
+    "row": "Sətir"
+  },
+  "company": {
+    "name": "Inframed Life",
+    "loginTitle": "Login, HospitalLab"
   }
 }

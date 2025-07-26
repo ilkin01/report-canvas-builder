@@ -5,9 +5,11 @@ import { Plus, Type, BarChart3, Square, MessageSquare, PenTool, Table } from "lu
 import { useEditor } from "@/context/EditorContext";
 import { ElementProperties } from "@/components/editor/properties/ElementProperties";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "react-i18next";
 
 export const AppSidebar = () => {
   const { addElement, canvasState } = useEditor();
+  const { t } = useTranslation();
 
   const selectedElement = canvasState.pages[canvasState.currentPageIndex]?.elements.find(
     (el) => el.isSelected
@@ -29,7 +31,7 @@ export const AppSidebar = () => {
   const getDefaultContent = (type: string) => {
     switch (type) {
       case "text":
-        return { text: "Sample Text", fontSize: 16, color: "#333333", textAlign: "left" };
+        return { text: t('elements.sampleText'), fontSize: 16, color: "#333333", textAlign: "left" };
       case "chart":
         return {
           type: "bar",
@@ -38,7 +40,7 @@ export const AppSidebar = () => {
             { name: "B", value: 200 },
             { name: "C", value: 150 }
           ],
-          title: "Sample Chart"
+          title: t('elements.sampleChart')
         };
       case "shape":
         return { 
@@ -48,17 +50,17 @@ export const AppSidebar = () => {
           borderWidth: 1 
         };
       case "comment":
-        return { text: "Add your comment here", author: "User" };
+        return { text: t('elements.addComment'), author: t('header.user') };
       case "signature":
         return { name: "", date: new Date().toISOString().split('T')[0] };
       case "table":
         return {
-          title: "Sample Table",
-          headers: ["Column 1", "Column 2", "Column 3"],
+          title: t('elements.sampleTable'),
+          headers: [t('elements.column') + " 1", t('elements.column') + " 2", t('elements.column') + " 3"],
           columnTypes: ["string", "string", "string"],
           rows: [
-            ["Row 1 Col 1", "Row 1 Col 2", "Row 1 Col 3"],
-            ["Row 2 Col 1", "Row 2 Col 2", "Row 2 Col 3"]
+            [t('elements.row') + " 1 " + t('elements.column') + " 1", t('elements.row') + " 1 " + t('elements.column') + " 2", t('elements.row') + " 1 " + t('elements.column') + " 3"],
+            [t('elements.row') + " 2 " + t('elements.column') + " 1", t('elements.row') + " 2 " + t('elements.column') + " 2", t('elements.row') + " 2 " + t('elements.column') + " 3"]
           ],
           highlightedRows: [],
           headerBgColor: "#f3f4f6",
@@ -73,7 +75,7 @@ export const AppSidebar = () => {
     <div className="w-80 border-r bg-gray-50 flex flex-col h-full">
       {/* Elements Section */}
       <div className="p-4 border-b">
-        <h3 className="font-semibold text-lg mb-3">Add Elements</h3>
+        <h3 className="font-semibold text-lg mb-3">{t('sidebar.addElements')}</h3>
         <div className="grid grid-cols-2 gap-2">
           <Button
             onClick={() => handleAddElement("text")}
@@ -82,7 +84,7 @@ export const AppSidebar = () => {
             className="flex flex-col h-auto py-3"
           >
             <Type className="h-4 w-4 mb-1" />
-            <span className="text-xs">Text</span>
+            <span className="text-xs">{t('sidebar.text')}</span>
           </Button>
           <Button
             onClick={() => handleAddElement("chart")}
@@ -91,7 +93,7 @@ export const AppSidebar = () => {
             className="flex flex-col h-auto py-3"
           >
             <BarChart3 className="h-4 w-4 mb-1" />
-            <span className="text-xs">Chart</span>
+            <span className="text-xs">{t('sidebar.chart')}</span>
           </Button>
           <Button
             onClick={() => handleAddElement("table")}
@@ -100,7 +102,7 @@ export const AppSidebar = () => {
             className="flex flex-col h-auto py-3"
           >
             <Table className="h-4 w-4 mb-1" />
-            <span className="text-xs">Table</span>
+            <span className="text-xs">{t('sidebar.table')}</span>
           </Button>
         </div>
       </div>
@@ -110,13 +112,13 @@ export const AppSidebar = () => {
         {selectedElement ? (
           <div className="flex-1">
             <div className="p-4 border-b">
-              <h3 className="font-semibold">Element Properties</h3>
+              <h3 className="font-semibold">{t('sidebar.elementProperties')}</h3>
             </div>
             <ElementProperties element={selectedElement} />
           </div>
         ) : (
           <div className="p-4 text-center text-gray-500">
-            <p>Select an element to edit its properties</p>
+            <p>{t('sidebar.selectElement')}</p>
           </div>
         )}
       </div>

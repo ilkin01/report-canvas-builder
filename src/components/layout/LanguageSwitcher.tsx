@@ -10,9 +10,8 @@ import {
 import { useTranslation } from "react-i18next";
 
 const languages = [
-  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-  { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'az', name: 'Azərbaycan', flag: '🇦🇿' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'ru', name: 'Русский', flag: '🇷🇺' },
 ];
 

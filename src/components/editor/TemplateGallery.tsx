@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "@/services/apiService";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface TemplateGalleryProps {
   onSelectTemplate?: () => void;
@@ -22,6 +23,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Patient search state
   const [patientSearch, setPatientSearch] = useState("");
@@ -79,15 +81,15 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
 
   const handleCreateReport = async () => {
     if (!selectedTemplateId) {
-      toast.error("Please select a template first");
+      toast.error(t('templates.selectTemplateFirst'));
       return;
     }
     if (!reportName.trim()) {
-      toast.error("Please enter a report name");
+      toast.error(t('templates.enterReportNameFirst'));
       return;
     }
     if (!selectedPatient) {
-      toast.error("Please select a patient");
+      toast.error(t('templates.selectPatientFirst'));
       return;
     }
     console.log('Selected patient:', selectedPatient);
@@ -99,7 +101,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
     if (onSelectTemplate) {
       onSelectTemplate();
     }
-    toast.success(`Created new report: ${reportName}`);
+    toast.success(`${t('templates.createReport')}: ${reportName}`);
   };
 
   // Pagination helpers
@@ -122,35 +124,35 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
   return (
     <div className="space-y-6 max-w-3xl w-full min-h-[500px]">
       <div className="space-y-2">
-        <Label htmlFor="reportName">Report Name</Label>
+        <Label htmlFor="reportName">{t('templates.reportName')}</Label>
         <Input
           id="reportName"
           value={reportName}
           onChange={(e) => setReportName(e.target.value)}
-          placeholder="Enter report name"
+          placeholder={t('templates.enterReportName')}
           className="w-full"
         />
       </div>
       <div className="space-y-2">
-        <Label>Search Patient</Label>
+        <Label>{t('templates.searchPatient')}</Label>
         <div className="relative">
           <Input
             value={patientSearch}
             onChange={e => { setPatientSearch(e.target.value); setPatientPageIndex(0); }}
-            placeholder="Pasiyent axtar..."
+            placeholder={t('templates.searchPatientPlaceholder')}
             className="w-full pl-10 rounded-xl border-2 border-gray-200 focus:border-blue-400 transition"
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
             <svg width="18" height="18" fill="none" stroke="currentColor"><circle cx="8" cy="8" r="7" strokeWidth="2"/><path d="M17 17l-3.5-3.5" strokeWidth="2" strokeLinecap="round"/></svg>
           </span>
         </div>
-        <div className="text-xs text-gray-500 italic px-3 pt-2 pb-1">Bu pasiyentlər reception tərəfindən yönləndirilib.</div>
+        <div className="text-xs text-gray-500 italic px-3 pt-2 pb-1">{t('templates.patientInfo')}</div>
         {selectedPatient && (
           <div className="flex items-center gap-2 mb-2">
             <div className="rounded-full bg-blue-100 text-blue-700 px-3 py-1 text-sm font-semibold shadow">
-              Seçilmiş: {selectedPatient.name} {selectedPatient.surname}
+              {t('templates.selectedPatient')}: {selectedPatient.name} {selectedPatient.surname}
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setSelectedPatient(null)}>Dəyiş</Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedPatient(null)}>{t('templates.change')}</Button>
           </div>
         )}
         <div className="overflow-y-auto max-h-[350px]">
@@ -159,14 +161,14 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
               <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></span>
             </div>
           ) : patients.length === 0 ? (
-            <div className="text-center py-6 text-gray-400">Heç bir pasiyent tapılmadı</div>
+            <div className="text-center py-6 text-gray-400">{t('templates.noPatientFound')}</div>
           ) : (
             <div className="min-w-full">
               <div className="flex font-semibold border-b bg-gray-50 text-xs">
-                <div className="flex-1 px-2 py-2">Ad Soyad</div>
-                <div className="w-32 px-2 py-2">Ata adı</div>
-                <div className="w-32 px-2 py-2">Doğum</div>
-                <div className="w-32 px-2 py-2">FIN</div>
+                <div className="flex-1 px-2 py-2">{t('templates.nameAndSurname')}</div>
+                <div className="w-32 px-2 py-2">{t('templates.fatherName')}</div>
+                <div className="w-32 px-2 py-2">{t('templates.birthDate')}</div>
+                <div className="w-32 px-2 py-2">{t('templates.finCode')}</div>
               </div>
               {patients.map(p => (
                 <div
@@ -191,7 +193,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
             <Button
               size="icon"
               variant="outline"
-              aria-label="Əvvəlki səhifə"
+              aria-label={t('templates.previousPage')}
               disabled={patientPageIndex === 0}
               onClick={() => setPatientPageIndex(i => i - 1)}
               className="rounded-full transition hover:bg-blue-50"
@@ -222,7 +224,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
             <Button
               size="icon"
               variant="outline"
-              aria-label="Növbəti səhifə"
+              aria-label={t('templates.nextPage')}
               disabled={patientPageIndex === totalPages - 1}
               onClick={() => setPatientPageIndex(i => i + 1)}
               className="rounded-full transition hover:bg-blue-50"
@@ -233,9 +235,9 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
         )}
       </div>
       <div className="space-y-3">
-        <Label>Select a Template</Label>
+        <Label>{t('templates.selectTemplate')}</Label>
         {loading ? (
-          <div className="text-center py-4">Loading templates...</div>
+          <div className="text-center py-4">{t('templates.loadingTemplates')}</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
             {templates.map((template) => (
@@ -250,7 +252,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                 style={{ minWidth: 0 }}
               >
                 <p className="font-medium text-sm truncate">{template.name}</p>
-                <p className="text-xs text-gray-500">Template</p>
+                <p className="text-xs text-gray-500">{t('templates.template')}</p>
               </div>
             ))}
           </div>
@@ -258,7 +260,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
       </div>
       <div className="flex justify-end">
         <Button onClick={handleCreateReport} disabled={!selectedTemplateId || !selectedPatient} className="bg-blue-600 hover:bg-blue-700">
-          Create Report
+          {t('templates.createReport')}
         </Button>
       </div>
     </div>

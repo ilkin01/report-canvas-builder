@@ -21,12 +21,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 export const AppHeader = () => {
   const { undo, redo, canvasState, getActiveReport, setCurrentPage } = useEditor();
   const [newTemplateDialogOpen, setNewTemplateDialogOpen] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const activeReport = getActiveReport();
   const { user } = useAppSelector((state) => state.auth);
@@ -35,7 +37,7 @@ export const AppHeader = () => {
   const handleLogout = () => {
     dispatch(logout());
     navigate('/login');
-    toast.success("Uğurla çıxış etdiniz");
+    toast.success(t('auth.logoutSuccess'));
   };
 
   // User initials and name helpers
@@ -46,21 +48,21 @@ export const AppHeader = () => {
     return `${name.charAt(0)}${surname.charAt(0)}`.toUpperCase();
   };
   const getUserName = () => {
-    if (!user) return "İstifadəçi";
+    if (!user) return t('header.user');
     const name = user.name || "";
     const surname = user.surname || "";
-    return `${name} ${surname}`.trim() || "İstifadəçi";
+    return `${name} ${surname}`.trim() || t('header.user');
   };
 
   // Generate and download PDF with all pages
   const handleExportPdf = async () => {
     if (!activeReport) {
-      toast.error("No active report to export");
+      toast.error(t('messages.noActiveReport'));
       return;
     }
     
     try {
-      toast.info("Preparing PDF export...");
+      toast.info(t('messages.preparingPDF'));
       
       const pdf = new jsPDF({
         orientation: "portrait",
@@ -87,7 +89,7 @@ export const AppHeader = () => {
         // Get the canvas container
         const canvasContainer = document.querySelector('.canvas-container');
         if (!canvasContainer) {
-          toast.error("Could not find report canvas");
+          toast.error(t('messages.couldNotFindCanvas'));
           continue; // Skip this page but try to continue with others
         }
         
@@ -126,10 +128,10 @@ export const AppHeader = () => {
       
       // Save PDF
       pdf.save(`${activeReport.name.replace(/\s+/g, '_')}.pdf`);
-      toast.success("PDF exported successfully with all pages");
+      toast.success(t('messages.pdfExported'));
     } catch (error) {
       console.error("PDF export error:", error);
-      toast.error("Failed to export PDF. Please try again.");
+      toast.error(t('messages.pdfExportFailed'));
       
       // Make sure we restore the current page even if there's an error
       setCurrentPage(canvasState.currentPageIndex);
@@ -139,7 +141,7 @@ export const AppHeader = () => {
   // Generate and download Excel with data from all pages
   const handleExportExcel = () => {
     if (!activeReport) {
-      toast.error("No active report to export");
+      toast.error(t('messages.noActiveReport'));
       return;
     }
     
@@ -175,23 +177,23 @@ export const AppHeader = () => {
       }
       
       if (!hasTableData) {
-        toast.error("No table data to export");
+        toast.error(t('messages.noTableData'));
         return;
       }
       
       // Write and save
       XLSX.writeFile(wb, `${activeReport.name.replace(/\s+/g, '_')}.xlsx`);
-      toast.success("Excel file exported successfully with data from all pages");
+      toast.success(t('messages.excelExported'));
     } catch (error) {
       console.error("Excel export error:", error);
-      toast.error("Failed to export Excel. Please try again.");
+      toast.error(t('messages.excelExportFailed'));
     }
   };
 
   return (
     <header className="flex items-center justify-between px-6 h-16 border-b bg-white shadow-sm">
       <div className="flex items-center space-x-4">
-        <h1 className="text-2xl font-bold text-medical-blue">Inframed Life</h1>
+        <h1 className="text-2xl font-bold text-medical-blue">{t('company.name')}</h1>
       </div>
       
       <div className="flex items-center space-x-2">
@@ -200,9 +202,9 @@ export const AppHeader = () => {
           size="sm"
           onClick={undo}
           disabled={canvasState.history.past.length === 0}
-          title="Undo"
+          title={t('header.undo')}
         >
-          <Undo className="h-4 w-4 mr-1" /> Undo
+          <Undo className="h-4 w-4 mr-1" /> {t('header.undo')}
         </Button>
         
         <Button
@@ -210,22 +212,22 @@ export const AppHeader = () => {
           size="sm"
           onClick={redo}
           disabled={canvasState.history.future.length === 0}
-          title="Redo"
+          title={t('header.redo')}
         >
-          <Redo className="h-4 w-4 mr-1" /> Redo
+          <Redo className="h-4 w-4 mr-1" /> {t('header.redo')}
         </Button>
         
         <div className="mx-2 h-6 border-l border-gray-200" />
         
         <Dialog open={newTemplateDialogOpen} onOpenChange={setNewTemplateDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" title="New Report">
-              <Square className="h-4 w-4 mr-1" /> New
+            <Button variant="outline" size="sm" title={t('header.newReport')}>
+              <Square className="h-4 w-4 mr-1" /> {t('header.new')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[700px]">
             <DialogHeader>
-              <DialogTitle>Choose a Template</DialogTitle>
+              <DialogTitle>{t('header.chooseTemplate')}</DialogTitle>
             </DialogHeader>
             <TemplateGallery onSelectTemplate={() => setNewTemplateDialogOpen(false)} />
           </DialogContent>
@@ -238,9 +240,9 @@ export const AppHeader = () => {
           size="sm"
           onClick={handleExportPdf}
           disabled={!activeReport}
-          title="Export as PDF"
+          title={t('header.exportPDF')}
         >
-          <ArrowDown className="h-4 w-4 mr-1" /> PDF
+          <ArrowDown className="h-4 w-4 mr-1" /> {t('header.pdf')}
         </Button>
         
         <Button
@@ -248,9 +250,9 @@ export const AppHeader = () => {
           size="sm"
           onClick={handleExportExcel}
           disabled={!activeReport}
-          title="Export as Excel"
+          title={t('header.exportExcel')}
         >
-          <ArrowDown className="h-4 w-4 mr-1" /> Excel
+          <ArrowDown className="h-4 w-4 mr-1" /> {t('header.excel')}
         </Button>
 
         <div className="mx-2 h-6 border-l border-gray-200" />
@@ -288,7 +290,7 @@ export const AppHeader = () => {
                   {getUserName()}
                 </div>
                 <div className="flex items-center justify-center gap-2 text-sm text-blue-700 font-medium">
-                  {user?.role || "İstifadəçi"}
+                  {user?.role || t('header.user')}
                 </div>
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-1">
                   <Mail className="h-4 w-4 text-blue-400" />
@@ -305,7 +307,7 @@ export const AppHeader = () => {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/settings')} className="text-gray-700 font-semibold py-3 flex items-center justify-center hover:bg-blue-50 transition-all">
               <SettingsIcon className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>{t('navigation.settings')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
