@@ -12,15 +12,23 @@ const resources = {
   ru: { translation: ru },
 };
 
+// localStorage'dan dil al, yoksa default 'az'
+const savedLanguage = localStorage.getItem('appLanguage') || 'az';
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'az', // default language
+    lng: savedLanguage, // localStorage'dan alınan dil
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false,
     },
   });
+
+// Dil değiştiğinde localStorage'a yaz
+i18n.on('languageChanged', (lng) => {
+  localStorage.setItem('appLanguage', lng);
+});
 
 export default i18n;

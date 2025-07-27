@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
 import { AuthGuard } from './components/AuthGuard';
@@ -18,63 +18,20 @@ import Settings from "./pages/Settings";
 import SendFileToPatient from "./pages/SendFileToPatient";
 import UpdatePatientFile from "./pages/UpdatePatientFile";
 import './i18n/config';
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { fetchUserProfile } from "@/redux/slices/authSlice";
+import AppRoutes from "./AppRoutes";
+
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <Provider store={store}>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={
-              <AuthGuard requireAuth={false}>
-                <Login />
-              </AuthGuard>
-            } />
-            <Route path="/" element={
-              <AuthGuard requireAuth={true}>
-                <Index />
-              </AuthGuard>
-            } />
-            <Route path="/template-creator" element={
-              <AuthGuard requireAuth={true}>
-                <TemplateCreator />
-              </AuthGuard>
-            } />
-            <Route path="/editor" element={
-              <AuthGuard requireAuth={true}>
-                <Editor />
-              </AuthGuard>
-            } />
-            <Route path="/report-creator" element={
-              <AuthGuard requireAuth={true}>
-                <ReportCreator />
-              </AuthGuard>
-            } />
-            <Route path="/report-updater" element={<ReportUpdater />} />
-            <Route path="/settings" element={
-              <AuthGuard requireAuth={true}>
-                <Settings />
-              </AuthGuard>
-            } />
-            <Route path="/send-file-to-patient" element={
-              <AuthGuard requireAuth={true}>
-                <SendFileToPatient />
-              </AuthGuard>
-            } />
-            <Route path="/update-patient-file/:id" element={
-              <AuthGuard requireAuth={true}>
-                <UpdatePatientFile />
-              </AuthGuard>
-            } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
     </QueryClientProvider>
   </Provider>
 );

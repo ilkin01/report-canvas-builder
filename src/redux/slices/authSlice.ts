@@ -13,16 +13,16 @@ export const loginUser = createAsyncThunk(
         useToken: false,
       });
 
-      if (response.token) {
-        localStorage.setItem('authToken', response.token);
-        dispatch(setToken(response.token)); // <-- redux state-ə yaz
+      if (response) {
+        localStorage.setItem('authToken', response);
+        dispatch(setToken(response));
         localStorage.setItem('auth_role', 'HospitalLab');
         try {
           const userResponse = await apiService.sendRequest({
             endpoint: '/api/HospitalLab/me',
             method: 'GET',
             useToken: true,
-            token: response.token, // <-- token-i birbaşa ötür
+            token: response,
           });
 
           const userData = {
@@ -34,19 +34,22 @@ export const loginUser = createAsyncThunk(
             role: 'HospitalLab',
           };
 
+          localStorage.setItem('authToken', response);
+
           return {
-            token: response.token,
+            token: response,
             user: userData
           };
         } catch (profileError: any) {
+          localStorage.setItem('authToken', response);
           return {
-            token: response.token,
+            token: response,
             user: null
           };
         }
       }
       return {
-        token: response.token,
+        token: response,
         user: null
       };
     } catch (error: any) {
@@ -61,12 +64,15 @@ export const fetchUserProfile = createAsyncThunk(
   async (_, { getState, rejectWithValue }) => {
     try {
       const state = getState() as RootState;
-      const token = state.auth.token;
+      const token = state.auth.token || localStorage.getItem('authToken');
+      if (!token) {
+        return rejectWithValue('401');
+      }
       const response = await apiService.sendRequest({
         endpoint: '/api/HospitalLab/me',
         method: 'GET',
         useToken: true,
-        token, // <-- redux-dan token
+        token,
       });
       const role = localStorage.getItem('auth_role') || 'HospitalLab';
       const userData = {
@@ -79,8 +85,11 @@ export const fetchUserProfile = createAsyncThunk(
       };
       return userData;
     } catch (error: any) {
-      localStorage.setItem('auth_role', '');
-      return rejectWithValue(error.message || 'Failed to fetch user profile');
+      if (error?.response?.status === 401 || error?.message?.includes('401')) {
+        localStorage.removeItem('authToken');
+        return rejectWithValue('401');
+      }
+      return rejectWithValue('profile_error');
     }
   }
 );
@@ -91,11 +100,11 @@ export const updateUserProfile = createAsyncThunk(
     try {
       const response = await apiService.sendRequest({
         endpoint: '/api/HospitalLab/UpdateHospitalLab',
-        method: 'PUT', // <-- Fix: Use PUT instead of POST
+        method: 'PUT',
         body: profile,
         useToken: true,
       });
-      return profile; // Return the updated profile
+      return profile;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to update profile');
     }
@@ -114,10 +123,9 @@ export const uploadProfilePhoto = createAsyncThunk(
         body: formData,
         useToken: true,
       });
-      // Backend yeni avatar url-i qaytarırsa, onu response-dan götür
       return response;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Şəkil yüklənmədi');
+      return rejectWithValue(error.message || 'Failed to upload photo');
     }
   }
 );
@@ -133,7 +141,7 @@ interface AuthState {
   } | null;
   token: string | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
+  isLoading: boolean
   error: string | null;
 }
 
@@ -176,7 +184,9 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.token = action.payload.token;
         state.error = null;
-        // Əgər user məlumatı login cavabında yoxdursa, user null olaraq qalır
+        if (action.payload.token) {
+          localStorage.setItem('authToken', action.payload.token);
+        }
         if (action.payload.user) {
           state.user = action.payload.user;
         }
@@ -193,9 +203,18 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         state.error = null;
+        state.isAuthenticated = true;
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.isLoading = false;
+        if (action.payload === '401') {
+          state.user = null;
+          state.token = null;
+          state.isAuthenticated = false;
+          localStorage.removeItem('authToken');
+        } else {
+          state.isAuthenticated = true;
+        }
         state.error = action.payload as string;
       })
       .addCase(updateUserProfile.pending, (state) => {
@@ -213,7 +232,6 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      // Avatar upload üçün reducer
       .addCase(uploadProfilePhoto.pending, (state) => {
         state.isLoading = true;
         state.error = null;
