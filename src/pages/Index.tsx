@@ -175,7 +175,7 @@ const Index = () => {
   const quickStats = [
     { title: t('dashboard.stats.dailyReports'), value: String(reportStats?.dailyReportCount ?? 0), icon: BarChart3, color: 'text-blue-600', bgColor: 'bg-blue-50' },
     { title: t('dashboard.stats.monthlyReports'), value: String(reportStats?.monthlyReportCount ?? 0), icon: Calendar, color: 'text-orange-600', bgColor: 'bg-orange-50' },
-    { title: t('dashboard.stats.monthlySentFiles'), value: String(monthlySentFilesCount ?? 0), icon: Download, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+    { title: "Aylıq göndərilən fayllar", value: String(monthlySentFilesCount ?? 0), icon: Download, color: 'text-purple-600', bgColor: 'bg-purple-50' },
   ];
   
   useEffect(() => {

@@ -50,12 +50,32 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
   const [patientSearch, setPatientSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Pagination helpers for modal patient search
   const pageSize = 6;
   const [patientPageIndex, setPatientPageIndex] = useState(0);
   const [patientTotalCount, setPatientTotalCount] = useState(0);
   const totalPages = Math.ceil(patientTotalCount / pageSize);
+  
+  // Debounced search function
+  const handlePatientSearch = (value: string) => {
+    setPatientSearch(value);
+    setPatientPageIndex(0); // Reset to first page when searching
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      fetchPatients(value, 0);
+    }, 300);
+    
+    setSearchTimeout(timeout);
+  };
+
   function getPageNumbers(current: number, total: number) {
     const delta = 2;
     const range: (number | string)[] = [];
@@ -82,18 +102,17 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
           setTemplates(data || []);
         }).catch(() => setTemplates([])).finally(() => setTemplatesLoading(false));
       });
-      // Fetch patients (first page, empty search)
-      setPatientsLoading(true);
-      import("@/services/apiService").then(({ apiService }) => {
-        apiService.sendRequest({
-          endpoint: "/api/HospitalLab/SearchPatientsForLab",
-          method: "POST",
-          body: { name: "", pageIndex: 0 }
-        }).then((res) => {
-          setPatients(res.users || []);
-        }).catch(() => setPatients([])).finally(() => setPatientsLoading(false));
-      });
+      
+      // Always fetch patients when modal opens (first page, empty search)
+      fetchPatients("", 0);
     }
+    
+    // Cleanup function
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
   }, [showEditModal]);
 
   // Pre-select current patient/template when modal opens
@@ -105,22 +124,45 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
     }
   }, [showEditModal, editingReportId, reports]);
 
-  // Fetch patients with search
+  // Separate function to fetch patients
+  const fetchPatients = async (searchTerm: string, pageIndex: number) => {
+    setPatientsLoading(true);
+    try {
+      const { apiService } = await import("@/services/apiService");
+      const res = await apiService.sendRequest({
+        endpoint: "/api/HospitalLab/SearchPatientsForLab",
+        method: "POST",
+        body: { 
+          name: searchTerm, 
+          pageIndex: pageIndex, 
+          pageSize: pageSize 
+        }
+      });
+      
+      if (res && res.users) {
+        setPatients(res.users);
+        setPatientTotalCount(res.totalCount || 0);
+      } else {
+        setPatients([]);
+        setPatientTotalCount(0);
+      }
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+      setPatients([]);
+      setPatientTotalCount(0);
+      // Show error toast but don't break the modal
+      toast.error("Xəstələr yüklənərkən xəta baş verdi. Yenidən cəhd edin.");
+    } finally {
+      setPatientsLoading(false);
+    }
+  };
+
+  // Fetch patients when search or page changes
   useEffect(() => {
     if (showEditModal) {
-      setPatientsLoading(true);
-      import("@/services/apiService").then(({ apiService }) => {
-        apiService.sendRequest({
-          endpoint: "/api/HospitalLab/SearchPatientsForLab",
-          method: "POST",
-          body: { name: patientSearch, pageIndex: patientPageIndex, pageSize }
-        }).then((res) => {
-          setPatients(res.users || []);
-          setPatientTotalCount(res.totalCount || 0);
-        }).catch(() => { setPatients([]); setPatientTotalCount(0); }).finally(() => setPatientsLoading(false));
-      });
+      fetchPatients(patientSearch, patientPageIndex);
     }
-  }, [showEditModal, patientSearch, patientPageIndex, pageSize]);
+  }, [showEditModal, patientSearch, patientPageIndex]);
 
   const handleOpenEditModal = (report: ReportDocument) => {
     setEditName(report.name);
@@ -353,24 +395,38 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
             </div>
             <div>
               <label className="block text-sm md:text-base font-medium mb-2">Search Patient</label>
-              <Input
-                placeholder="Pasiyent axtar..."
-                value={patientSearch}
-                onChange={e => setPatientSearch(e.target.value)}
-                className="mb-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-200"
-              />
+              <div className="relative">
+                <Input
+                  placeholder="Pasiyent axtar..."
+                  value={patientSearch}
+                  onChange={e => handlePatientSearch(e.target.value)}
+                  className="w-full pr-10 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-200"
+                />
+                {patientsLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></span>
+                  </div>
+                )}
+              </div>
               <div className="text-xs md:text-sm text-gray-500 italic mb-2">Bu pasiyentlər reception tərəfindən yönləndirilib.</div>
-              <div className="overflow-auto max-h-[300px]">
+              
+              {/* Patient List */}
+              <div className="overflow-auto max-h-[300px] border border-gray-200 rounded-lg">
                 {patientsLoading ? (
                   <div className="flex justify-center items-center py-8">
-                    <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></span>
+                    <div className="flex items-center gap-2">
+                      <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></span>
+                      <span className="text-gray-600">Xəstələr yüklənir...</span>
+                    </div>
                   </div>
                 ) : patients.length === 0 ? (
-                  <div className="text-center py-6 text-gray-400">Heç bir pasiyent tapılmadı</div>
+                  <div className="text-center py-6 text-gray-400">
+                    {patientSearch ? `"${patientSearch}" üçün heç bir xəstə tapılmadı` : "Heç bir xəstə tapılmadı"}
+                  </div>
                 ) : (
                   <div className="w-full">
                     {selectedPatientId && (
-                      <div className="mb-3 flex items-center gap-2">
+                      <div className="mb-3 flex items-center gap-2 p-3 bg-blue-50 border-b">
                         <div className="rounded-full bg-blue-100 text-blue-700 px-3 py-1 text-sm font-semibold shadow">
                           Seçilmiş: {(() => {
                             const p = patients.find(x => String(x.id) === String(selectedPatientId));
@@ -379,16 +435,24 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
                               : '';
                           })()}
                         </div>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => setSelectedPatientId(null)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                        >
+                          Dəyiş
+                        </Button>
                       </div>
                     )}
-                    <div className="overflow-y-auto max-h-[350px]">
+                    <div className="overflow-y-auto max-h-[250px]">
                       <table className="min-w-full text-sm">
-                        <thead>
+                        <thead className="bg-gray-50">
                           <tr className="border-b">
-                            <th className="py-2 px-4 text-left font-semibold">Ad Soyad</th>
-                            <th className="py-2 px-4 text-left font-semibold">Ata adı</th>
-                            <th className="py-2 px-4 text-left font-semibold">Doğum</th>
-                            <th className="py-2 px-4 text-left font-semibold">FIN</th>
+                            <th className="py-2 px-4 text-left font-semibold text-gray-700">Ad Soyad</th>
+                            <th className="py-2 px-4 text-left font-semibold text-gray-700">Ata adı</th>
+                            <th className="py-2 px-4 text-left font-semibold text-gray-700">Doğum</th>
+                            <th className="py-2 px-4 text-left font-semibold text-gray-700">FIN</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -404,13 +468,13 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
                                 onClick={() => setSelectedPatientId(String(p.id))}
                               >
                                 <td className="py-2 px-4">
-                                  <span className={"font-semibold underline " + (selected ? "text-blue-800" : "text-blue-700 hover:text-blue-900") }>
+                                  <span className={"font-semibold " + (selected ? "text-blue-800" : "text-blue-700 hover:text-blue-900") }>
                                     {p.fullName || [p.name, p.surname].filter(Boolean).join(' ')}
                                   </span>
                                 </td>
                                 <td className="py-2 px-4 text-gray-500">{p.fatherName || p.middleName || p.patronymic || ''}</td>
                                 <td className="py-2 px-4">{p.birthDay}</td>
-                                <td className="py-2 px-4">{p.finCode}</td>
+                                <td className="py-2 px-4 font-mono">{p.finCode}</td>
                               </tr>
                             );
                           })}
@@ -420,33 +484,34 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
                   </div>
                 )}
               </div>
+              
               {/* Pagination */}
-              {patients.length > 0 && totalPages > 0 && (
+              {patients.length > 0 && totalPages > 1 && (
                 <div className="flex flex-wrap gap-2 justify-center mt-4">
                   <Button
-                    size="icon"
+                    size="sm"
                     variant="outline"
                     aria-label="Əvvəlki səhifə"
                     disabled={patientPageIndex === 0}
                     onClick={() => setPatientPageIndex(i => i - 1)}
-                    className="rounded-full transition hover:bg-blue-50"
+                    className="h-8 px-3 rounded-md transition-all duration-200 hover:bg-blue-50 hover:border-blue-300"
                   >
-                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
                   </Button>
                   {getPageNumbers(patientPageIndex + 1, totalPages).map((page, idx) =>
                     page === '...'
-                      ? <span key={idx} className="px-2 text-gray-400 select-none">...</span>
+                      ? <span key={idx} className="px-2 py-1 text-gray-400 select-none">...</span>
                       : (
                         <Button
                           key={page}
-                          size="icon"
+                          size="sm"
                           aria-label={`Səhifə ${page}`}
                           variant={patientPageIndex + 1 === page ? "default" : "outline"}
                           className={
-                            "rounded-full font-mono text-lg font-semibold transition " +
+                            "h-8 px-3 rounded-md font-semibold text-sm transition-all duration-200 " +
                             (patientPageIndex + 1 === page
-                              ? "bg-blue-600 text-white shadow-lg scale-110"
-                              : "hover:bg-blue-50")
+                              ? "bg-blue-600 text-white shadow-md scale-105"
+                              : "hover:bg-blue-50 hover:border-blue-300")
                           }
                           onClick={() => setPatientPageIndex(Number(page) - 1)}
                         >
@@ -455,14 +520,14 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
                       )
                   )}
                   <Button
-                    size="icon"
+                    size="sm"
                     variant="outline"
                     aria-label="Növbəti səhifə"
                     disabled={patientPageIndex === totalPages - 1}
                     onClick={() => setPatientPageIndex(i => i + 1)}
-                    className="rounded-full transition hover:bg-blue-50"
+                    className="h-8 px-3 rounded-md transition-all duration-200 hover:bg-blue-50 hover:border-blue-300"
                   >
-                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
                   </Button>
                 </div>
               )}

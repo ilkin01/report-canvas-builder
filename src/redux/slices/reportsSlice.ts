@@ -281,7 +281,7 @@ export const fetchMonthlySentFilesCount = createAsyncThunk(
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(
-        'https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/HospitalLab/GetUniquePatientCountLastMonth',
+        'https://inframedlife-apigateway-cudnbsd4h5f6czdx.germanywestcentral-01.azurewebsites.net/api/HospitalLab/GetCurrentMonthFileCount',
         {
           method: 'GET',
           headers: token ? { 'Authorization': `Bearer ${token}` } : {},
