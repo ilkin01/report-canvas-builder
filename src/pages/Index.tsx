@@ -23,7 +23,11 @@ import {
   Clock,
   Activity,
   BarChart3,
-  Download
+  Download,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  TrendingDown
 } from "lucide-react";
 import { TemplateManagement } from "@/components/editor/TemplateManagement";
 import { TemplateGallery } from "@/components/editor/TemplateGallery";
@@ -49,12 +53,14 @@ import PatientFilesList from '@/components/patients/PatientFilesList';
 import { fetchReportStats } from '@/redux/slices/reportsSlice';
 import { fetchMonthlySentFilesCount } from '@/redux/slices/reportsSlice';
 import { useTranslation } from "react-i18next";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showTemplateManagement, setShowTemplateManagement] = useState(false);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<'reports' | 'files'>('reports');
   const [sort, setSort] = useState(true);
   const [patientReports, setPatientReports] = useState([]);
@@ -255,165 +261,222 @@ const Index = () => {
 
   return (
     <EditorProvider>
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="min-h-screen flex flex-col bg-gray-50">
         <AppHeader />
         <div className="flex flex-1 overflow-hidden">
           {!isEditing ? (
             <div className="flex-1 overflow-auto">
-              {/* Quick Actions */}
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-6">
-                  <Button 
-                    onClick={handleCreateAnalysis}
-                    className="h-24 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
-                  >
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="p-3 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
-                        <TestTube className="h-6 w-6" />
-                      </div>
-                      <span className="font-medium">{t('dashboard.quickActions.newAnalysis')}</span>
-                    </div>
-                  </Button>
+              {/* Quick Actions Grid */}
+              <div className="p-6 md:p-8">
+                <div className="grid gap-4 md:gap-6 mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    {/* New Analysis Button - Hidden on Mobile */}
+                    {!isMobile && (
+                      <Button 
+                        onClick={handleCreateAnalysis}
+                        className="h-20 md:h-24 bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
+                      >
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="p-2 bg-white/20 rounded-full">
+                            <TestTube className="h-6 w-6" />
+                          </div>
+                          <span className="font-medium">{t('dashboard.quickActions.newAnalysis')}</span>
+                        </div>
+                      </Button>
+                    )}
 
-                  <Button 
-                    onClick={handleCreateTemplate}
-                    variant="outline"
-                    className="h-24 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
-                  >
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="p-3 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
-                        <PenTool className="h-6 w-6" />
-                      </div>
-                      <span className="font-medium">{t('dashboard.quickActions.newTemplate')}</span>
-                    </div>
-                  </Button>
+                    {/* New Template Button - Hidden on Mobile */}
+                    {!isMobile && (
+                      <Button 
+                        onClick={handleCreateTemplate}
+                        variant="outline"
+                        className="h-20 md:h-24 bg-green-600 hover:bg-green-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
+                      >
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="p-2 bg-white/20 rounded-full">
+                            <PenTool className="h-6 w-6" />
+                          </div>
+                          <span className="font-medium">{t('dashboard.quickActions.newTemplate')}</span>
+                        </div>
+                      </Button>
+                    )}
 
-                  <Button 
-                    onClick={() => setShowTemplateManagement(true)}
-                    variant="outline"
-                    className="h-24 bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
-                  >
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="p-3 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
-                        <Settings className="h-6 w-6" />
+                    {/* Management Button */}
+                    <Button 
+                      onClick={() => setShowTemplateManagement(true)}
+                      variant="outline"
+                      className="h-20 md:h-24 bg-purple-600 hover:bg-purple-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
+                    >
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="p-2 bg-white/20 rounded-full">
+                          <Settings className="h-6 w-6" />
+                        </div>
+                        <span className="font-medium">{t('dashboard.quickActions.management')}</span>
                       </div>
-                      <span className="font-medium">{t('dashboard.quickActions.management')}</span>
-                    </div>
-                  </Button>
+                    </Button>
+
+                    {/* Send File to Patient Button */}
+                    <Button
+                      onClick={() => navigate('/send-file-to-patient')}
+                      className="h-20 md:h-24 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200 rounded-xl"
+                    >
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="p-2 bg-white/20 rounded-full">
+                          <Download className="h-6 w-6" />
+                        </div>
+                        <span className="font-medium">{t('dashboard.stats.sendFileToPatient')}</span>
+                      </div>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="flex justify-center gap-6 flex-wrap">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
                   {quickStats.map((stat, index) => (
-                    <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-0 bg-white/80 backdrop-blur-sm min-w-[320px] max-w-[380px] flex-1">
+                    <Card key={index} className="hover:shadow-md transition-all duration-200 border-0 bg-white shadow-sm">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
                           </div>
-                          <div className={`p-3 rounded-full ${stat.bgColor} group-hover:scale-110 transition-transform`}>
+                          <div className={`p-3 rounded-full ${stat.bgColor}`}>
                             <stat.icon className={`h-6 w-6 ${stat.color}`} />
                           </div>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
-                  {/* 4-cü olaraq yeni düymə */}
-                  <div className="min-w-[320px] max-w-[380px] flex-1 flex items-center justify-center">
-                    <Button
-                      onClick={() => navigate('/send-file-to-patient')}
-                      className="w-full h-20 bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 text-lg font-semibold rounded-xl"
-                      style={{ minWidth: 320, maxWidth: 380 }}
-                    >
-                      {t('dashboard.stats.sendFileToPatient')}
-                    </Button>
-                  </div>
                 </div>
 
-                {/* Tabs for Patient Reports & Patient Files */}
-                <div className="flex gap-2 mb-4">
-                  <button
-                    className={`px-4 py-2 rounded-t-lg font-semibold border-b-2 transition ${activeTab === 'reports' ? 'border-blue-600 text-blue-700 bg-white' : 'border-transparent text-gray-500 bg-gray-100 hover:bg-gray-200'}`}
-                    onClick={() => setActiveTab('reports')}
-                  >
-                    {t('dashboard.tabs.patientReports')}
-                  </button>
-                  <button
-                    className={`px-4 py-2 rounded-t-lg font-semibold border-b-2 transition ${activeTab === 'files' ? 'border-blue-600 text-blue-700 bg-white' : 'border-transparent text-gray-500 bg-gray-100 hover:bg-gray-200'}`}
-                    onClick={() => setActiveTab('files')}
-                  >
-                    {t('dashboard.tabs.patientFiles')}
-                  </button>
+                {/* Tabs */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1 mb-6">
+                  <div className="flex gap-1">
+                    <button
+                      className={`flex-1 px-6 py-3 rounded-md font-medium transition-all duration-200 ${
+                        activeTab === 'reports' 
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                          : 'text-gray-500 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setActiveTab('reports')}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <Users className="h-5 w-5" />
+                        {t('dashboard.tabs.patientReports')}
+                      </div>
+                    </button>
+                    <button
+                      className={`flex-1 px-6 py-3 rounded-md font-medium transition-all duration-200 ${
+                        activeTab === 'files' 
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                          : 'text-gray-500 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setActiveTab('files')}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        {t('dashboard.tabs.patientFiles')}
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Tab Content */}
                 {activeTab === 'reports' ? (
-                  <Card className="bg-white/80 backdrop-blur-sm border-0">
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Users className="h-5 w-5 mr-2 text-green-600" />
-                        {t('dashboard.patientsList.title')}
-                        <Input
-                          type="text"
-                          placeholder={t('common.search')}
-                          value={searchName}
-                          onChange={e => {
-                            setSearchName(e.target.value);
-                            setPageIndex(0);
-                          }}
-                          className="ml-4 w-56 h-9 text-base"
-                        />
-                        <button
-                          className="ml-2 px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
-                          onClick={() => setSort((prev) => !prev)}
-                          title="Sort"
-                        >
-                          {sort ? t('dashboard.patientsList.newest') : t('dashboard.patientsList.oldest')}
-                        </button>
+                  <Card className="bg-white border-0 shadow-sm">
+                    <CardHeader className="p-6 border-b border-gray-100">
+                      <CardTitle className="flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-blue-100 rounded-lg">
+                            <Users className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <h2 className="text-xl font-semibold text-gray-800">{t('dashboard.patientsList.title')}</h2>
+                            <p className="text-gray-600">{t('dashboard.patientsList.description')}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <div className="relative">
+                            <Input
+                              type="text"
+                              placeholder={t('common.search')}
+                              value={searchName}
+                              onChange={e => {
+                                setSearchName(e.target.value);
+                                setPageIndex(0);
+                              }}
+                              className="w-full sm:w-64 h-10 text-sm border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg pl-9"
+                            />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={() => setSort((prev) => !prev)}
+                            className="h-10 px-4 border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-lg"
+                          >
+                            <div className="flex items-center gap-2">
+                              {sort ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                              {sort ? t('dashboard.patientsList.newest') : t('dashboard.patientsList.oldest')}
+                            </div>
+                          </Button>
+                        </div>
                       </CardTitle>
-                      <CardDescription>{t('dashboard.patientsList.description')}</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6">
                       {loadingReports ? (
-                        <div className="py-8 text-center text-gray-500">{t('common.loading')}</div>
+                        <div className="py-12 text-center">
+                          <div className="inline-flex items-center gap-3 text-gray-500">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                            <span className="text-lg">{t('common.loading')}</span>
+                          </div>
+                        </div>
                       ) : (
                         <>
                           <PatientsList onReportSelect={() => setIsEditing(true)} reports={patientReports} />
-                          {/* Pagination Controls */}
-                          {patientReports.length > 0 ? (
-                            <div className="flex justify-center items-center mt-4 gap-2">
-                              <button
-                                className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
-                                onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
-                                disabled={pageIndex === 0}
-                              >
-                                {t('common.prev')}
-                              </button>
-                              <span className="mx-2 text-base">{pageIndex + 1} / {totalPages}</span>
-                              <button
-                                className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 text-sm font-medium"
-                                onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
-                                disabled={pageIndex >= totalPages - 1}
-                              >
-                                {t('common.next')}
-                              </button>
+                          {/* Pagination */}
+                          {patientReports.length > 0 && (
+                            <div className="flex justify-center items-center mt-8">
+                              <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+                                  disabled={pageIndex === 0}
+                                  className="h-9 w-9 p-0 rounded-md border-gray-200 hover:border-gray-300 hover:bg-gray-100"
+                                >
+                                  <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <div className="px-4 py-2 bg-white rounded-md border border-gray-200">
+                                  <span className="font-medium text-gray-700">{pageIndex + 1} / {totalPages}</span>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
+                                  disabled={pageIndex >= totalPages - 1}
+                                  className="h-9 w-9 p-0 rounded-md border-gray-200 hover:border-gray-300 hover:bg-gray-100"
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
-                          ) : null}
+                          )}
                         </>
                       )}
                     </CardContent>
                   </Card>
                 ) : (
-                  <Card className="bg-white/80 backdrop-blur-sm border-0">
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Users className="h-5 w-5 mr-2 text-blue-600" />
-                        {t('patients.patientFiles')}
+                  <Card className="bg-white border-0 shadow-sm">
+                    <CardHeader className="p-6 border-b border-gray-100">
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="p-3 bg-indigo-100 rounded-lg">
+                          <FileText className="h-6 w-6 text-indigo-600" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-semibold text-gray-800">{t('patients.patientFiles')}</h2>
+                          <p className="text-gray-600">{t('patients.patientFilesDescription')}</p>
+                        </div>
                       </CardTitle>
-                      <CardDescription>{t('patients.patientFilesDescription')}</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6">
                       <PatientFilesList />
                     </CardContent>
                   </Card>
@@ -428,9 +491,9 @@ const Index = () => {
 
               {/* Template Gallery Dialog */}
               <Dialog open={showTemplateGallery} onOpenChange={setShowTemplateGallery}>
-                <DialogContent className="max-w-2xl w-full">
+                <DialogContent className="max-w-4xl w-full mx-auto">
                   <DialogHeader>
-                    <DialogTitle>{t('templates.selectTemplate')}</DialogTitle>
+                    <DialogTitle className="text-xl font-semibold">{t('templates.selectTemplate')}</DialogTitle>
                     <DialogDescription>
                       {t('dashboard.selectTemplateDescription')}
                     </DialogDescription>

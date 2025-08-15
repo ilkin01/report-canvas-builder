@@ -22,6 +22,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useTranslation } from "react-i18next";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const AppHeader = () => {
   const { undo, redo, canvasState, getActiveReport, setCurrentPage } = useEditor();
@@ -29,6 +30,7 @@ export const AppHeader = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   
   const activeReport = getActiveReport();
   const { user } = useAppSelector((state) => state.auth);
@@ -191,18 +193,22 @@ export const AppHeader = () => {
   };
 
   return (
-    <header className="flex items-center justify-between px-6 h-16 border-b bg-white shadow-sm">
-      <div className="flex items-center space-x-4">
-        <h1 className="text-2xl font-bold text-medical-blue">{t('company.name')}</h1>
+    <header className="flex items-center justify-between px-3 md:px-6 h-16 border-b bg-white shadow-sm">
+      {/* Company Logo - Responsive */}
+      <div className="flex items-center space-x-2 md:space-x-4">
+        <h1 className="text-lg md:text-2xl font-bold text-medical-blue">{t('company.name')}</h1>
       </div>
       
-      <div className="flex items-center space-x-2">
+      {/* Desktop Controls - Hidden on Mobile */}
+      <div className="hidden lg:flex items-center space-x-2">
+        {/* Undo/Redo Buttons */}
         <Button
           variant="outline"
           size="sm"
           onClick={undo}
           disabled={canvasState.history.past.length === 0}
           title={t('header.undo')}
+          className="h-8 px-3"
         >
           <Undo className="h-4 w-4 mr-1" /> {t('header.undo')}
         </Button>
@@ -213,19 +219,21 @@ export const AppHeader = () => {
           onClick={redo}
           disabled={canvasState.history.future.length === 0}
           title={t('header.redo')}
+          className="h-8 px-3"
         >
           <Redo className="h-4 w-4 mr-1" /> {t('header.redo')}
         </Button>
         
         <div className="mx-2 h-6 border-l border-gray-200" />
         
+        {/* New Template Dialog - Hidden on Mobile */}
         <Dialog open={newTemplateDialogOpen} onOpenChange={setNewTemplateDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" title={t('header.newReport')}>
+            <Button variant="outline" size="sm" title={t('header.newReport')} className="h-8 px-3">
               <Square className="h-4 w-4 mr-1" /> {t('header.new')}
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[700px]">
+          <DialogContent className="sm:max-w-[700px] mx-4">
             <DialogHeader>
               <DialogTitle>{t('header.chooseTemplate')}</DialogTitle>
             </DialogHeader>
@@ -235,12 +243,14 @@ export const AppHeader = () => {
         
         <div className="mx-2 h-6 border-l border-gray-200" />
         
+        {/* Export Buttons */}
         <Button
           variant="outline"
           size="sm"
           onClick={handleExportPdf}
           disabled={!activeReport}
           title={t('header.exportPDF')}
+          className="h-8 px-3"
         >
           <ArrowDown className="h-4 w-4 mr-1" /> {t('header.pdf')}
         </Button>
@@ -251,26 +261,37 @@ export const AppHeader = () => {
           onClick={handleExportExcel}
           disabled={!activeReport}
           title={t('header.exportExcel')}
+          className="h-8 px-3"
         >
           <ArrowDown className="h-4 w-4 mr-1" /> {t('header.excel')}
         </Button>
 
         <div className="mx-2 h-6 border-l border-gray-200" />
-        <LanguageSwitcher />
         
-        {/* User Profile Dropdown */}
+        {/* Language Switcher */}
+        <LanguageSwitcher />
+      </div>
+
+      {/* Right Side - Language Switcher (Mobile) + User Profile */}
+      <div className="flex items-center space-x-2">
+        {/* Language Switcher - Visible on Mobile */}
+        <div className="lg:hidden">
+          <LanguageSwitcher />
+        </div>
+
+        {/* User Profile Dropdown - Always Visible */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-auto px-3 rounded-full hover:bg-gradient-to-r hover:from-blue-100 hover:to-purple-100 transition-all">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10 ring-2 ring-blue-400/30">
+            <Button variant="ghost" className="relative h-8 md:h-10 w-auto px-2 md:px-3 rounded-full hover:bg-gradient-to-r hover:from-blue-100 hover:to-purple-100 transition-all">
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <Avatar className="h-8 w-8 md:h-10 md:w-10 ring-2 ring-blue-400/30">
                   <AvatarImage src={user?.avatarUrl} alt={getUserName()} />
-                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-base font-bold">
+                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm md:text-base font-bold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:block text-left">
-                  <p className="text-base font-semibold text-gray-900">{getUserName()}</p>
+                  <p className="text-sm md:text-base font-semibold text-gray-900">{getUserName()}</p>
                   <p className="text-xs text-blue-600 font-medium">{user?.role || "İstifadəçi"}</p>
                 </div>
               </div>
@@ -294,12 +315,12 @@ export const AppHeader = () => {
                 </div>
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-1">
                   <Mail className="h-4 w-4 text-blue-400" />
-                  {user?.email}
+                  <span className="truncate max-w-[200px]">{user?.email}</span>
                 </div>
                 {user?.phoneNumber && (
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-1">
                     <Phone className="h-4 w-4 text-green-500" />
-                    {user.phoneNumber}
+                    <span className="truncate max-w-[200px]">{user.phoneNumber}</span>
                   </div>
                 )}
               </div>

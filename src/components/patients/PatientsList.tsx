@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PatientsListProps {
   onReportSelect?: () => void;
@@ -21,6 +22,7 @@ interface PatientsListProps {
 export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, reports: externalReports }) => {
   const dispatch = useAppDispatch();
   const { reports: reduxReports, loading, error } = useAppSelector(state => state.reports);
+  const isMobile = useIsMobile();
   // For local state update
   const [localReports, setLocalReports] = useState<ReportDocument[]>([]);
   const navigate = useNavigate();
@@ -232,10 +234,10 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Patient Reports</CardTitle>
+      <CardHeader className="p-3 md:p-6">
+        <CardTitle className="text-lg md:text-xl">Patient Reports</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 md:p-6">
         {loading && reports.length === 0 ? ( // Sadece başlangıç yüklemesinde göster
           <div className="text-center py-6">Loading reports...</div>
         ) : error ? (
@@ -247,86 +249,117 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
             No reports available. Create a new report to get started.
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Report Name</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Patient Name</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {reports.map((report) => (
-                <TableRow key={report.id}>
-                  <TableCell className="font-medium">{report.name}</TableCell>
-                  <TableCell>
-                    {report.createdAt ? new Date(report.createdAt).toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate">{report.patientName ? report.patientName : 'Pasiyent Secilmeyib'}</TableCell>
-                  <TableCell className="flex gap-2 justify-end">
-                    <Button variant="outline" size="sm" title="Change Name" onClick={() => handleOpenEditModal(report)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      title="Update"
-                      onClick={async () => {
-                        try {
-                          // 1. GET report data
-                          await import("@/services/apiService").then(async ({ apiService }) => {
-                            await apiService.sendRequest({
-                              endpoint: `/api/Report/GetReportById/${report.id}`,
-                              method: "GET"
-                            });
-                          });
-                          // 2. Show warning and navigate
-                          toast.warning("Bu, mövcud hesabatın yenilənməsi (update) səhifəsidir.");
-                          navigate(`/report-updater?reportId=${report.id}`);
-                        } catch (err) {
-                          toast.error("Report məlumatı yüklənə bilmədi");
-                        }
-                      }}
-                    >
-                      <PenTool className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      title="Delete"
-                      onClick={() => handleDeleteReport(report.id)}
-                      disabled={deletingId === report.id}
-                    >
-                      {deletingId === report.id ? "..." : <Trash className="h-4 w-4" />}
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-sm md:text-base">Report Name</TableHead>
+                  <TableHead className="text-sm md:text-base">Created At</TableHead>
+                  <TableHead className="text-sm md:text-base">Patient Name</TableHead>
+                  <TableHead className="text-right text-sm md:text-base">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {reports.map((report) => (
+                  <TableRow key={report.id} className="hover:bg-gray-50">
+                    <TableCell className="font-medium text-sm md:text-base">{report.name}</TableCell>
+                    <TableCell className="text-sm md:text-base">
+                      {report.createdAt ? new Date(report.createdAt).toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate text-sm md:text-base">{report.patientName ? report.patientName : 'Pasiyent Secilmeyib'}</TableCell>
+                    <TableCell className="flex gap-1 md:gap-2 justify-end">
+                      {/* Edit Button - Always Visible */}
+                      <Button 
+                        variant="outline" 
+                        size={isMobile ? "sm" : "sm"} 
+                        title="Change Name" 
+                        onClick={() => handleOpenEditModal(report)}
+                        className="h-8 w-8 md:h-9 md:w-auto p-0 md:px-3"
+                      >
+                        <Edit className="h-3 w-3 md:h-4 md:w-4" />
+                        {!isMobile && <span className="ml-1">Edit</span>}
+                      </Button>
+                      
+                      {/* Update Button - Hidden on Mobile and Small Screens */}
+                      <div className="hidden xl:block">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          title="Update"
+                          onClick={async () => {
+                            try {
+                              // 1. GET report data
+                              await import("@/services/apiService").then(async ({ apiService }) => {
+                                await apiService.sendRequest({
+                                  endpoint: `/api/Report/GetReportById/${report.id}`,
+                                  method: "GET"
+                                });
+                              });
+                              // 2. Show warning and navigate
+                              toast.warning("Bu, mövcud hesabatın yenilənməsi (update) səhifəsidir.");
+                              navigate(`/report-updater?reportId=${report.id}`);
+                            } catch (err) {
+                              toast.error("Report məlumatı yüklənə bilmədi");
+                            }
+                          }}
+                          className="h-8 px-3"
+                        >
+                          <PenTool className="h-4 w-4 mr-1" />
+                          Update
+                        </Button>
+                      </div>
+                      
+                      {/* Delete Button - Always Visible */}
+                      <Button
+                        variant="destructive"
+                        size={isMobile ? "sm" : "sm"}
+                        title="Delete"
+                        onClick={() => handleDeleteReport(report.id)}
+                        disabled={deletingId === report.id}
+                        className="h-8 w-8 md:h-9 md:w-auto p-0 md:px-3"
+                      >
+                        {deletingId === report.id ? (
+                          "..." 
+                        ) : (
+                          <>
+                            <Trash className="h-3 w-3 md:h-4 md:w-4" />
+                            {!isMobile && <span className="ml-1">Delete</span>}
+                          </>
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
+      
       {/* Edit Name Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl w-full mx-4">
           <DialogHeader>
-            <DialogTitle>Edit Report</DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">Edit Report</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Report Name</label>
-              <Input value={editName} onChange={e => setEditName(e.target.value)} />
+              <label className="block text-sm md:text-base font-medium mb-2">Report Name</label>
+              <Input 
+                value={editName} 
+                onChange={e => setEditName(e.target.value)} 
+                className="w-full"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Search Patient</label>
+              <label className="block text-sm md:text-base font-medium mb-2">Search Patient</label>
               <Input
                 placeholder="Pasiyent axtar..."
                 value={patientSearch}
                 onChange={e => setPatientSearch(e.target.value)}
                 className="mb-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-200"
               />
-              <div className="text-xs text-gray-500 italic mb-2">Bu pasiyentlər reception tərəfindən yönləndirilib.</div>
+              <div className="text-xs md:text-sm text-gray-500 italic mb-2">Bu pasiyentlər reception tərəfindən yönləndirilib.</div>
               <div className="overflow-auto max-h-[300px]">
                 {patientsLoading ? (
                   <div className="flex justify-center items-center py-8">
@@ -435,7 +468,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Template</label>
+              <label className="block text-sm md:text-base font-medium mb-2">Template</label>
               <Input
                 type="text"
                 value={(() => {
@@ -448,7 +481,9 @@ export const PatientsList: React.FC<PatientsListProps> = ({ onReportSelect, repo
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleSaveEdit} disabled={saving}>{saving ? "Yadda saxlanır..." : "Yadda saxla"}</Button>
+            <Button onClick={handleSaveEdit} disabled={saving} className="w-full md:w-auto">
+              {saving ? "Yadda saxlanır..." : "Yadda saxla"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
